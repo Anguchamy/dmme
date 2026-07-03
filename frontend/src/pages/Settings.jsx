@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
+
+function InstagramGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.6" cy="6.4" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
 
 export default function Settings() {
   const [me, setMe] = useState(null);
@@ -12,8 +23,15 @@ export default function Settings() {
     pageAccessToken: "",
   });
   const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [params, setParams] = useSearchParams();
 
-  const loadAccounts = () => api.get("/api/instagram/accounts").then(setAccounts).catch(() => {});
+  const loadAccounts = () =>
+    api
+      .get("/api/instagram/accounts")
+      .then((d) => setAccounts(Array.isArray(d) ? d : []))
+      .catch(() => {});
 
   useEffect(() => {
     api.get("/api/me").then((m) => {
@@ -23,13 +41,45 @@ export default function Settings() {
     loadAccounts();
   }, []);
 
+  // Surface the outcome of the Instagram OAuth redirect, then clean the URL.
+  useEffect(() => {
+    const connected = params.get("ig_connected");
+    const igErr = params.get("ig_error");
+    if (connected) {
+      setMsg(`Instagram connected: ${connected}`);
+      loadAccounts();
+    }
+    if (igErr) setErr(`Instagram connection failed: ${igErr}`);
+    if (connected || igErr) {
+      params.delete("ig_connected");
+      params.delete("ig_error");
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function saveProfile() {
     setMsg("");
+    setErr("");
     await api.put("/api/me", { fullName });
     setMsg("Profile saved.");
   }
 
-  async function connectAccount() {
+  async function connectInstagram() {
+    setErr("");
+    setMsg("");
+    setConnecting(true);
+    try {
+      const { url } = await api.get("/api/instagram/oauth/url");
+      window.location.assign(url);
+    } catch (e) {
+      setConnecting(false);
+      setErr(e.message || "Could not start Instagram login.");
+    }
+  }
+
+  async function connectManual() {
+    setErr("");
     setMsg("");
     try {
       await api.post("/api/instagram/accounts/connect", connect);
@@ -37,7 +87,7 @@ export default function Settings() {
       loadAccounts();
       setMsg("Instagram account connected.");
     } catch (e) {
-      setMsg(e.message);
+      setErr(e.message);
     }
   }
 
@@ -49,7 +99,8 @@ export default function Settings() {
   return (
     <div style={{ maxWidth: 680 }}>
       <h1>Settings</h1>
-      {msg && <div className="card" style={{ marginBottom: 16 }}>{msg}</div>}
+      {msg && <div className="banner banner-ok">{msg}</div>}
+      {err && <div className="banner banner-err">{err}</div>}
 
       <div className="card" style={{ marginBottom: 24 }}>
         <h3>Profile</h3>
@@ -65,7 +116,18 @@ export default function Settings() {
       </div>
 
       <div className="card" style={{ marginBottom: 24 }}>
-        <h3>Connected Instagram accounts</h3>
+        <div className="row-flex" style={{ justifyContent: "space-between" }}>
+          <h3 style={{ margin: 0 }}>Instagram</h3>
+          <button className="btn btn-ig btn-sm" onClick={connectInstagram} disabled={connecting}>
+            <InstagramGlyph />
+            {connecting ? "Redirecting…" : accounts.length ? "Connect another" : "Connect Instagram"}
+          </button>
+        </div>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>
+          Connect a Business or Creator Instagram account to start automating comments, story
+          replies, and DMs. You'll be redirected to Instagram to authorize dmme.
+        </p>
+
         {accounts.length === 0 ? (
           <p style={{ color: "var(--muted)" }}>No accounts connected yet.</p>
         ) : (
@@ -75,7 +137,11 @@ export default function Settings() {
                 <tr key={a.id}>
                   <td>@{a.igUsername || a.igUserId}</td>
                   <td>{a.isActive ? "Active" : "Inactive"}</td>
-                  <td><button className="btn btn-ghost btn-sm" onClick={() => disconnect(a.id)}>Disconnect</button></td>
+                  <td>
+                    <button className="btn btn-ghost btn-sm" onClick={() => disconnect(a.id)}>
+                      Disconnect
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -83,11 +149,13 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="card">
-        <h3>Connect an account</h3>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 0 }}>
-          Run the "Login with Instagram" flow (see docs/SETUP.md), then paste the resulting
-          Instagram business account details and long-lived Page access token here.
+      <details className="card">
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+          Advanced: connect manually with a token
+        </summary>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>
+          For development/testing only. Paste an Instagram user id and a long-lived access token
+          obtained outside the app.
         </p>
         <div className="field">
           <label>Instagram user ID</label>
@@ -98,15 +166,15 @@ export default function Settings() {
           <input value={connect.igUsername} onChange={(e) => setConnect({ ...connect, igUsername: e.target.value })} />
         </div>
         <div className="field">
-          <label>Facebook Page ID</label>
+          <label>Facebook Page ID (optional)</label>
           <input value={connect.facebookPageId} onChange={(e) => setConnect({ ...connect, facebookPageId: e.target.value })} />
         </div>
         <div className="field">
-          <label>Page access token</label>
+          <label>Access token</label>
           <input value={connect.pageAccessToken} onChange={(e) => setConnect({ ...connect, pageAccessToken: e.target.value })} />
         </div>
-        <button className="btn btn-primary btn-sm" onClick={connectAccount}>Connect</button>
-      </div>
+        <button className="btn btn-ghost btn-sm" onClick={connectManual}>Connect manually</button>
+      </details>
     </div>
   );
 }

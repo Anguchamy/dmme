@@ -31,6 +31,14 @@ public class AppProperties {
         private String appSecret;
         private String verifyToken;
         private String graphBaseUrl = "https://graph.facebook.com/v21.0";
+
+        // Instagram API with Instagram Login (OAuth) settings.
+        private String redirectUri;
+        private String scopes =
+                "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments";
+        private String oauthAuthorizeUrl = "https://www.instagram.com/oauth/authorize";
+        private String oauthTokenUrl = "https://api.instagram.com/oauth/access_token";
+        private String igGraphBaseUrl = "https://graph.instagram.com";
     }
 
     @Data

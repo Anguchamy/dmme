@@ -9,6 +9,7 @@ import AutomationBuilder from "./pages/AutomationBuilder";
 import Leads from "./pages/Leads";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
+import InstagramCallback from "./pages/InstagramCallback";
 
 function Protected({ children }) {
   const { session, loading } = useAuth();
@@ -21,6 +22,14 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/instagram/callback"
+        element={
+          <Protected>
+            <InstagramCallback />
+          </Protected>
+        }
+      />
       <Route
         path="/app"
         element={

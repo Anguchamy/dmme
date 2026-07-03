@@ -31,10 +31,13 @@ app:
     jwt-secret: ${SUPABASE_JWT_SECRET:changeme-supabase-jwt-secret}
     project-url: ${SUPABASE_URL:https://your-project.supabase.co}
   instagram:
-    app-id: ${META_APP_ID:}
-    app-secret: ${META_APP_SECRET:}
+    app-id: ${INSTAGRAM_APP_ID:${META_APP_ID:}}
+    app-secret: ${INSTAGRAM_APP_SECRET:${META_APP_SECRET:}}
     verify-token: ${META_WEBHOOK_VERIFY_TOKEN:dmme-verify}
     graph-base-url: ${META_GRAPH_BASE_URL:https://graph.facebook.com/v21.0}
+    redirect-uri: ${INSTAGRAM_REDIRECT_URI:http://localhost:5173/instagram/callback}
+    scopes: ${INSTAGRAM_SCOPES:instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments}
+    ig-graph-base-url: ${INSTAGRAM_GRAPH_BASE_URL:https://graph.instagram.com}
   razorpay:
     key-id: ${RAZORPAY_KEY_ID:}
     key-secret: ${RAZORPAY_KEY_SECRET:}
