@@ -21,7 +21,16 @@ async function request(method, path, body) {
     throw new Error(text || `Request failed: ${res.status}`);
   }
   const ct = res.headers.get("content-type") || "";
-  return ct.includes("application/json") ? res.json() : res.text();
+  if (ct.includes("application/json")) return res.json();
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Non-JSON response from ${path} (got "${ct || "unknown"}"). Check VITE_API_BASE_URL — it should be the backend root with no /api suffix.`
+    );
+  }
 }
 
 export const api = {
