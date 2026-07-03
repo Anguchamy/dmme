@@ -86,14 +86,80 @@ a { color: inherit; text-decoration: none; }
 
 .footer { padding: 40px 6vw; text-align: center; color: var(--muted); border-top: 1px solid var(--border); }
 
-/* ---------- Auth ---------- */
-.auth-wrap { min-height: 100vh; display: grid; place-items: center; background: var(--bg-soft); }
-.auth-card { width: 380px; max-width: 92vw; background: #fff; border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 36px; text-align: center; }
-.auth-card h1 { color: var(--accent); margin: 0 0 6px; }
-.auth-card input { width: 100%; padding: 12px 14px; margin: 8px 0; border: 1px solid var(--border);
-  border-radius: 10px; font-size: 15px; }
-.auth-card .err { color: #d33; font-size: 14px; }
+/* ---------- Auth / Login ---------- */
+.login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: #fff; }
+
+.login-form-col { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.login-form { width: 340px; max-width: 100%; }
+
+.brand-row { display: flex; align-items: center; gap: 8px; margin-bottom: 40px; }
+.brand-mark { width: 22px; height: 22px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: inline-block; }
+.brand-name { font-weight: 800; font-size: 18px; color: var(--text); }
+
+.login-form h2 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.4px; }
+.login-sub { color: var(--muted); margin: 0 0 24px; font-size: 15px; }
+
+.google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px;
+  background: #fff; color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.google-btn:hover { background: #fafafe; border-color: #d7d7e6; }
+
+.divider { display: flex; align-items: center; text-align: center; color: var(--muted);
+  font-size: 12px; margin: 18px 0; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.divider span { padding: 0 12px; }
+
+.login-input { width: 100%; padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 15px; background: #f7f7fb; }
+.login-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+.forgot { text-align: right; margin: 2px 0 16px; }
+.forgot a { color: var(--muted); font-size: 13px; cursor: pointer; }
+.forgot a:hover { color: var(--accent); }
+
+.login-err { color: #d33; font-size: 14px; margin-bottom: 12px; }
+.login-ok { color: #1a8f4b; font-size: 14px; margin-bottom: 12px; }
+
+.signin-btn { width: 100%; padding: 13px; border: none; border-radius: 10px;
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.signin-btn:hover { background: var(--accent-2); }
+.signin-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-switch { text-align: center; margin-top: 22px; font-size: 14px; color: var(--muted); }
+.login-switch a { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+/* Right showcase panel */
+.login-showcase {
+  background: linear-gradient(180deg, #eef2ff 0%, #f6f0ff 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 24px; overflow: hidden;
+}
+.showcase-head { font-size: 34px; font-weight: 800; margin: 0 0 36px; letter-spacing: -0.5px; }
+.showcase-head span { color: var(--accent); }
+
+.cards-row { display: flex; gap: 16px; max-width: 100%; }
+.creator-card {
+  position: relative; width: 150px; height: 300px; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 18px 40px rgba(80, 40, 160, 0.18); flex: 0 0 auto;
+}
+.creator-card:nth-child(odd) { transform: translateY(14px); }
+.creator-meta {
+  position: absolute; inset: auto 0 0 0; padding: 14px 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.72) 70%);
+  color: #fff;
+}
+.cat-chip { display: inline-block; background: #22c55e; color: #06301a;
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+.creator-handle { font-weight: 700; font-size: 14px; }
+.creator-followers { display: flex; align-items: center; gap: 5px; font-size: 12px; opacity: 0.9; margin-top: 2px; }
+
+@media (max-width: 900px) {
+  .login { grid-template-columns: 1fr; }
+  .login-showcase { display: none; }
+}
 
 /* ---------- Dashboard ---------- */
 .dash { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
