@@ -70,6 +70,8 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
             }
         }
         this.hmacKey = k;
+        log.info("SupabaseJwtFilter initialized: asymmetric JWKS verification enabled, HS256 fallback={}",
+                k != null);
     }
 
     @Override
@@ -97,7 +99,7 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
                         principal, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception ex) {
-                log.debug("JWT verification failed: {}", ex.getMessage());
+                log.warn("JWT verification failed: {}", ex.toString());
                 SecurityContextHolder.clearContext();
             }
         }
