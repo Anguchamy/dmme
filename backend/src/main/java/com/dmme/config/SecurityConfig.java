@@ -35,6 +35,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public: marketing data, health, Instagram webhook, Razorpay webhook, plans
                 .requestMatchers(
+                        "/error",
                         "/api/health",
                         "/api/plans",
                         "/api/webhooks/**").permitAll()
