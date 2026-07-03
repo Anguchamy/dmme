@@ -1,0 +1,26 @@
+# Copy this file to application-local.yml and fill in real values, then run:
+#   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+# (application-local.yml is gitignored.)
+
+spring:
+  datasource:
+    # Supabase: Project Settings > Database > Connection string (URI), use the
+    # session pooler or direct connection. Convert to JDBC form:
+    url: jdbc:postgresql://db.YOUR_PROJECT.supabase.co:5432/postgres
+    username: postgres
+    password: YOUR_DB_PASSWORD
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173
+  supabase:
+    jwt-secret: YOUR_SUPABASE_JWT_SECRET      # Settings > API > JWT Secret
+    project-url: https://YOUR_PROJECT.supabase.co
+  instagram:
+    app-id: YOUR_META_APP_ID
+    app-secret: YOUR_META_APP_SECRET
+    verify-token: any-random-string-you-choose
+  razorpay:
+    key-id: rzp_test_xxxxxxxx
+    key-secret: YOUR_RAZORPAY_KEY_SECRET
+    webhook-secret: YOUR_RAZORPAY_WEBHOOK_SECRET

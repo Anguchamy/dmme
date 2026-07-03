@@ -1,0 +1,17 @@
+# Optional: a local Postgres if you don't want to hit hosted Supabase during dev.
+# Point DB_URL at jdbc:postgresql://localhost:5432/postgres and run Supabase Auth separately,
+# or just use your hosted Supabase project (recommended).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
