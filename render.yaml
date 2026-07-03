@@ -1,0 +1,42 @@
+# Render Blueprint for the dmme backend (Docker).
+# In Render: New > Blueprint > point at this repo. It builds backend/Dockerfile.
+# Fill the sync:false secrets in the Render dashboard (they are not stored in git).
+services:
+  - type: web
+    name: dmme-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # --- Database (Supabase Postgres) ---
+      - key: DB_URL          # jdbc:postgresql://db.<project>.supabase.co:5432/postgres
+        sync: false
+      - key: DB_USER         # usually "postgres"
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # --- Supabase auth ---
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      # --- Instagram / Meta ---
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      # --- Razorpay ---
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      # --- CORS: your Cloudflare Pages URL, comma-separated for multiple ---
+      - key: CORS_ORIGINS    # e.g. https://dmme.pages.dev
+        sync: false
