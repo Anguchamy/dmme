@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 function LockIcon() {
   return (
@@ -25,6 +26,7 @@ export default function Overview() {
   const [accounts, setAccounts] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     api.get("/api/analytics/summary").then(setSummary).catch(() => {});
@@ -37,7 +39,14 @@ export default function Overview() {
   }, []);
 
   const notConnected = loaded && accounts.length === 0;
-  const firstName = (me?.fullName || me?.email || "there").split(/[ @]/)[0];
+  const displayName =
+    me?.fullName ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    me?.email ||
+    user?.email ||
+    "there";
+  const firstName = displayName.split(/[ @]/)[0];
 
   return (
     <div className="overview">
