@@ -2,11 +2,11 @@
 # In Render: New > Blueprint > point at this repo. It builds backend/Dockerfile.
 # Fill the sync:false secrets in the Render dashboard (they are not stored in git).
 services:
-  - type: web
+  -     type: web
     name: dmme-backend
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /api/health
     autoDeploy: true
