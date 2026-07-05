@@ -84,6 +84,16 @@ public class InstagramAccountController {
                 .toList();
     }
 
+    /** (Re)subscribe an already-connected account to comment/message webhooks. */
+    @PostMapping("/{id}/subscribe")
+    public Map<String, Object> subscribe(@PathVariable Long id) {
+        InstagramAccount acc = repo.findById(id)
+                .filter(a -> a.getUserId().equals(currentUser.userId()))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Instagram account not found"));
+        instagram.subscribeToWebhooks(acc.getPageAccessToken(), acc.getIgUserId());
+        return Map.of("subscribed", true);
+    }
+
     @DeleteMapping("/{id}")
     public void disconnect(@PathVariable Long id) {
         repo.findById(id)

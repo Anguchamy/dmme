@@ -114,6 +114,17 @@ export default function Settings() {
     loadAccounts();
   }
 
+  async function enableTriggers(id) {
+    setErr("");
+    setMsg("");
+    try {
+      await api.post(`/api/instagram/accounts/${id}/subscribe`);
+      setMsg("Live triggers enabled — comments & DMs will now fire your automations.");
+    } catch (e) {
+      setErr(e.message || "Could not enable live triggers.");
+    }
+  }
+
   return (
     <div style={{ maxWidth: 680 }}>
       <UpgradeBanner />
@@ -172,7 +183,10 @@ export default function Settings() {
                 <tr key={a.id}>
                   <td>@{a.igUsername || a.igUserId}</td>
                   <td>{a.isActive ? "Active" : "Inactive"}</td>
-                  <td>
+                  <td className="row-flex" style={{ gap: 8 }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => enableTriggers(a.id)}>
+                      Enable live triggers
+                    </button>
                     <button className="btn btn-ghost btn-sm" onClick={() => disconnect(a.id)}>
                       Disconnect
                     </button>

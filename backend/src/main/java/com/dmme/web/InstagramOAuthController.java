@@ -3,7 +3,10 @@ package com.dmme.web;
 import com.dmme.domain.InstagramAccount;
 import com.dmme.repository.InstagramAccountRepository;
 import com.dmme.service.CurrentUserService;
+import com.dmme.service.InstagramClient;
 import com.dmme.service.InstagramOAuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,16 +25,21 @@ import java.util.UUID;
 @RequestMapping("/api/instagram/oauth")
 public class InstagramOAuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(InstagramOAuthController.class);
+
     private final InstagramOAuthService oauth;
     private final InstagramAccountRepository repo;
     private final CurrentUserService currentUser;
+    private final InstagramClient instagram;
 
     public InstagramOAuthController(InstagramOAuthService oauth,
                                     InstagramAccountRepository repo,
-                                    CurrentUserService currentUser) {
+                                    CurrentUserService currentUser,
+                                    InstagramClient instagram) {
         this.oauth = oauth;
         this.repo = repo;
         this.currentUser = currentUser;
+        this.instagram = instagram;
     }
 
     /** Returns the Instagram authorize URL for the frontend to redirect to. */
@@ -72,6 +80,14 @@ public class InstagramOAuthController {
         acc.setTokenExpiresAt(connected.expiresAt());
         acc.setActive(true);
         repo.save(acc);
+
+        // Subscribe the account to comment/message webhooks so automations fire.
+        try {
+            instagram.subscribeToWebhooks(acc.getPageAccessToken(), acc.getIgUserId());
+        } catch (Exception e) {
+            log.warn("Connected {} but failed to subscribe to webhooks: {}",
+                    acc.getIgUserId(), e.getMessage());
+        }
 
         return Map.of(
                 "id", acc.getId(),

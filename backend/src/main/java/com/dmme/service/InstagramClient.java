@@ -29,6 +29,22 @@ public class InstagramClient {
     }
 
     /**
+     * Subscribe the connected Instagram account to this app's webhook fields
+     * (comments + messages). Without this, Meta does not deliver comment/DM
+     * events for the account even when the app-level webhook is configured.
+     */
+    public void subscribeToWebhooks(String accessToken, String igUserId) {
+        igWeb.post()
+                .uri(b -> b.path("/" + igUserId + "/subscribed_apps")
+                        .queryParam("subscribed_fields", "comments,messages")
+                        .queryParam("access_token", accessToken)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
+
+    /**
      * List the connected account's recent media (posts + reels) via the
      * Instagram Graph API, so the creator can pick a post visually instead of
      * pasting a media id.

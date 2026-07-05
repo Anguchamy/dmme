@@ -85,6 +85,7 @@ public class InstagramWebhookController {
 
         String fromIgsid = String.valueOf(sender.get("id"));
         String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
+        log.info("Message webhook: igUser={} from={} text={}", igUserId, fromIgsid, text);
         engine.handleMessage(igUserId, fromIgsid, null, text);
     }
 
@@ -105,6 +106,8 @@ public class InstagramWebhookController {
         Map<String, Object> media = (Map<String, Object>) value.get("media");
         String mediaId = media != null ? String.valueOf(media.get("id")) : null;
 
+        log.info("Comment webhook: igUser={} media={} from=@{} text={}",
+                igUserId, mediaId, fromUsername, text);
         engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text);
     }
 }
