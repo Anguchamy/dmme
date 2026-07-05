@@ -85,13 +85,27 @@ public class InstagramWebhookController {
 
         String fromIgsid = String.valueOf(sender.get("id"));
         String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
-        log.info("Message webhook: igUser={} from={} text={}", igUserId, fromIgsid, text);
-        engine.handleMessage(igUserId, fromIgsid, null, text);
+
+        // A reply to one of our stories arrives as a message with reply_to.story.
+        Map<String, Object> replyTo = (Map<String, Object>) message.get("reply_to");
+        boolean storyReply = replyTo != null && replyTo.get("story") != null;
+
+        log.info("Message webhook: igUser={} from={} storyReply={} text={}",
+                igUserId, fromIgsid, storyReply, text);
+        engine.handleMessage(igUserId, fromIgsid, null, text, storyReply);
     }
 
     @SuppressWarnings("unchecked")
     private void handleChange(String igUserId, Map<String, Object> change) {
-        if (!"comments".equals(change.get("field"))) return;
+        String field = String.valueOf(change.get("field"));
+        // Post/reel comments -> COMMENT; live video comments -> LIVE.
+        String triggerType = switch (field) {
+            case "comments" -> "COMMENT";
+            case "live_comments" -> "LIVE";
+            default -> null;
+        };
+        if (triggerType == null) return;
+
         Map<String, Object> value = (Map<String, Object>) change.get("value");
         if (value == null) return;
 
@@ -106,8 +120,8 @@ public class InstagramWebhookController {
         Map<String, Object> media = (Map<String, Object>) value.get("media");
         String mediaId = media != null ? String.valueOf(media.get("id")) : null;
 
-        log.info("Comment webhook: igUser={} media={} from=@{} text={}",
-                igUserId, mediaId, fromUsername, text);
-        engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text);
+        log.info("{} webhook: igUser={} media={} from=@{} text={}",
+                triggerType, igUserId, mediaId, fromUsername, text);
+        engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
     }
 }

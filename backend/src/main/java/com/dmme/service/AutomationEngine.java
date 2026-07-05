@@ -50,18 +50,19 @@ public class AutomationEngine {
     }
 
     // ---------------------------------------------------------------------
-    // Inbound: comment on a post/reel
+    // Inbound: comment on a post/reel (COMMENT) or on a live video (LIVE)
     // ---------------------------------------------------------------------
     @Transactional
     public void handleComment(String igUserId, String mediaId, String commentId,
-                              String fromIgsid, String fromUsername, String text) {
+                              String fromIgsid, String fromUsername, String text, String triggerType) {
         InstagramAccount acc = igAccounts.findByIgUserId(igUserId).orElse(null);
         if (acc == null || fromIgsid == null) return;
 
-        logInbound(acc.getUserId(), null, fromIgsid, "COMMENT", text);
+        String type = (triggerType != null) ? triggerType : "COMMENT";
+        logInbound(acc.getUserId(), null, fromIgsid, type, text);
 
         List<Automation> candidates =
-                automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), "COMMENT", "ACTIVE");
+                automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), type, "ACTIVE");
 
         for (Automation a : candidates) {
             if (a.getIgMediaId() != null && !a.getIgMediaId().equals(mediaId)) continue;
@@ -79,11 +80,13 @@ public class AutomationEngine {
     // Inbound: direct message
     // ---------------------------------------------------------------------
     @Transactional
-    public void handleMessage(String igUserId, String fromIgsid, String fromUsername, String text) {
+    public void handleMessage(String igUserId, String fromIgsid, String fromUsername,
+                              String text, boolean storyReply) {
         InstagramAccount acc = igAccounts.findByIgUserId(igUserId).orElse(null);
         if (acc == null || fromIgsid == null) return;
 
-        logInbound(acc.getUserId(), null, fromIgsid, "DM", text);
+        String channel = storyReply ? "STORY_REPLY" : "DM";
+        logInbound(acc.getUserId(), null, fromIgsid, channel, text);
 
         // 1. Are we mid-flow, waiting on an answer to a question?
         Optional<ConversationState> pending = findPendingState(acc.getId(), fromIgsid);
@@ -92,8 +95,8 @@ public class AutomationEngine {
             return;
         }
 
-        // 2. Otherwise try to match a DM automation.
-        for (Automation a : automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), "DM", "ACTIVE")) {
+        // 2. Otherwise match a DM automation, or a STORY_REPLY one for story replies.
+        for (Automation a : automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), channel, "ACTIVE")) {
             if (matches(a, text)) {
                 startFlow(acc, a, fromIgsid, fromUsername);
                 break;
@@ -251,12 +254,9 @@ public class AutomationEngine {
     }
 
     private Optional<ConversationState> findPendingState(Long igAccountId, String igsid) {
-        // Find any active automation with a waiting state for this follower.
-        for (Automation a : automations.findByIgAccountIdAndTypeAndStatus(igAccountId, "COMMENT", "ACTIVE")) {
-            var s = states.findByIgAccountIdAndIgUserIdAndAutomationId(igAccountId, igsid, a.getId());
-            if (s.isPresent() && s.get().getAwaitingField() != null) return s;
-        }
-        for (Automation a : automations.findByIgAccountIdAndTypeAndStatus(igAccountId, "DM", "ACTIVE")) {
+        // Find any active automation (of any trigger type) with a waiting state
+        // for this follower — the follow-up answer always arrives as a DM.
+        for (Automation a : automations.findByIgAccountIdAndStatus(igAccountId, "ACTIVE")) {
             var s = states.findByIgAccountIdAndIgUserIdAndAutomationId(igAccountId, igsid, a.getId());
             if (s.isPresent() && s.get().getAwaitingField() != null) return s;
         }

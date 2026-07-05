@@ -36,7 +36,7 @@ public class InstagramClient {
     public void subscribeToWebhooks(String accessToken, String igUserId) {
         igWeb.post()
                 .uri(b -> b.path("/" + igUserId + "/subscribed_apps")
-                        .queryParam("subscribed_fields", "comments,messages")
+                        .queryParam("subscribed_fields", "comments,messages,live_comments")
                         .queryParam("access_token", accessToken)
                         .build())
                 .retrieve()
