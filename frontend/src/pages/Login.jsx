@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { brand } from "../config/brand";
 import { useAuth } from "../context/AuthContext";
+import { Logo } from "../components/Logo";
 
 const CREATORS = [
   { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", grad: "linear-gradient(160deg,#f6d365,#fd7e6d)" },
@@ -95,8 +95,7 @@ export default function Login() {
       <div className="login-form-col">
         <form className="login-form" onSubmit={submit}>
           <div className="brand-row">
-            <span className="brand-mark" aria-hidden="true" />
-            <span className="brand-name">{brand.name}</span>
+            <Logo size={32} />
           </div>
 
           <h2>{mode === "signin" ? "Welcome back" : "Create your account"}</h2>
