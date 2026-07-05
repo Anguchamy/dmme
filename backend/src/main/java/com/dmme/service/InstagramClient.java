@@ -33,10 +33,25 @@ public class InstagramClient {
      * (comments + messages). Without this, Meta does not deliver comment/DM
      * events for the account even when the app-level webhook is configured.
      */
-    public void subscribeToWebhooks(String accessToken, String igUserId) {
-        igWeb.post()
+    public String subscribeToWebhooks(String accessToken, String igUserId) {
+        return igWeb.post()
                 .uri(b -> b.path("/" + igUserId + "/subscribed_apps")
                         .queryParam("subscribed_fields", "comments,messages,live_comments")
+                        .queryParam("access_token", accessToken)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
+
+    /**
+     * Read which webhook fields this account is currently subscribed to.
+     * Useful for diagnosing "automation never fires" — if data is empty the
+     * account is not subscribed and Meta will not deliver comment/DM events.
+     */
+    public String getSubscribedApps(String accessToken, String igUserId) {
+        return igWeb.get()
+                .uri(b -> b.path("/" + igUserId + "/subscribed_apps")
                         .queryParam("access_token", accessToken)
                         .build())
                 .retrieve()

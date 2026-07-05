@@ -90,8 +90,22 @@ public class InstagramAccountController {
         InstagramAccount acc = repo.findById(id)
                 .filter(a -> a.getUserId().equals(currentUser.userId()))
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Instagram account not found"));
-        instagram.subscribeToWebhooks(acc.getPageAccessToken(), acc.getIgUserId());
-        return Map.of("subscribed", true);
+        String response = instagram.subscribeToWebhooks(acc.getPageAccessToken(), acc.getIgUserId());
+        return Map.of("subscribed", true, "metaResponse", response != null ? response : "");
+    }
+
+    /**
+     * Diagnostic: report which webhook fields Meta thinks this account is
+     * subscribed to. Empty data means the account is NOT subscribed, so no
+     * comment/DM events will ever be delivered.
+     */
+    @GetMapping("/{id}/subscription")
+    public Map<String, Object> subscription(@PathVariable Long id) {
+        InstagramAccount acc = repo.findById(id)
+                .filter(a -> a.getUserId().equals(currentUser.userId()))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Instagram account not found"));
+        String response = instagram.getSubscribedApps(acc.getPageAccessToken(), acc.getIgUserId());
+        return Map.of("igUserId", acc.getIgUserId(), "metaResponse", response != null ? response : "");
     }
 
     @DeleteMapping("/{id}")
