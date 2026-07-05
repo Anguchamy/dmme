@@ -94,6 +94,11 @@ public class AutomationService {
     private void replaceChildren(Long automationId, AutomationUpsert req) {
         keywords.deleteByAutomationId(automationId);
         steps.deleteByAutomationId(automationId);
+        // FlowStep/keyword ids are IDENTITY-generated, so save() triggers an
+        // immediate INSERT. Flush the deletes first, otherwise the new rows
+        // collide with the old ones on the (automation_id, step_order) unique key.
+        keywords.flush();
+        steps.flush();
 
         if (req.keywords() != null) {
             for (KeywordDto k : req.keywords()) {
