@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
+import PostPicker from "../components/PostPicker";
 
 const emptyStep = () => ({
   stepType: "TEXT",
@@ -28,6 +29,15 @@ function ChatGlyph() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 5h16v11H9l-4 3v-3H4z" />
+    </svg>
+  );
+}
+function ImageGlyphSm() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b6b0c6" strokeWidth="1.8">
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <circle cx="8.5" cy="9.5" r="1.6" />
+      <path d="M4 18l5-4 4 3 3-2 4 3" />
     </svg>
   );
 }
@@ -81,6 +91,8 @@ export default function AutomationBuilder() {
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState(null); // { id, thumbnail, caption }
 
   useEffect(() => {
     api.get("/api/instagram/accounts").then((d) => setAccounts(Array.isArray(d) ? d : [])).catch(() => {});
@@ -106,6 +118,15 @@ export default function AutomationBuilder() {
     set("steps", form.steps.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   const addStep = () => set("steps", [...form.steps, emptyStep()]);
   const removeStep = (i) => set("steps", form.steps.filter((_, idx) => idx !== i));
+
+  function openPicker() {
+    if (!form.igAccountId) {
+      setErr("Select an Instagram account first, then choose a post.");
+      return;
+    }
+    setErr("");
+    setShowPicker(true);
+  }
 
   async function save() {
     setErr("");
@@ -197,42 +218,79 @@ export default function AutomationBuilder() {
           </div>
 
           {isComment && (
-            <div className="field">
-              <label>Specific post/reel ID (optional — leave blank for all posts)</label>
-              <input value={form.igMediaId || ""} onChange={(e) => set("igMediaId", e.target.value)} placeholder="17895…" />
-            </div>
-          )}
-
-          <label className="inline-check">
-            <input type="checkbox" checked={form.matchAny} onChange={(e) => set("matchAny", e.target.checked)} />
-            Trigger on any {form.type === "DM" ? "message" : "comment"} (ignore keywords)
-          </label>
-
-          {!form.matchAny && (
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Keywords</label>
-              <div className="kw-list">
-                {form.keywords.map((k, i) => (
-                  <div className="kw-row" key={i}>
-                    <input value={k.keyword} onChange={(e) => setKeyword(i, e.target.value)} placeholder="e.g. link" />
-                    {form.keywords.length > 1 && (
-                      <button className="icon-btn" onClick={() => removeKeyword(i)}>✕</button>
-                    )}
+            <div className="config-section">
+              <div className="config-label">Which post or reel do you want to use?</div>
+              {form.igMediaId ? (
+                <div className="selected-post">
+                  {selectedMedia?.thumbnail
+                    ? <img src={selectedMedia.thumbnail} alt="" />
+                    : <div className="selected-post-noimg"><ImageGlyphSm /></div>}
+                  <div className="selected-post-text">
+                    <div className="selected-post-title">
+                      {selectedMedia?.caption ? selectedMedia.caption.slice(0, 60) : "Selected post"}
+                    </div>
+                    <div className="selected-post-id">ID: {form.igMediaId}</div>
                   </div>
-                ))}
-              </div>
-              <button className="link-btn" onClick={addKeyword}>+ Add keyword</button>
+                  <div className="selected-post-actions">
+                    <button className="link-btn" onClick={() => openPicker()}>Change</button>
+                    <button className="link-btn danger" onClick={() => { set("igMediaId", ""); setSelectedMedia(null); }}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="pick-post-card" onClick={() => openPicker()}>
+                  <span className="pick-post-icon"><ImageGlyphSm /></span>
+                  <span>Select post or reel</span>
+                  <span className="pick-post-hint">Leave empty to apply to all posts</span>
+                </button>
+              )}
             </div>
           )}
+
+          <div className="config-section">
+            <div className="config-label">
+              What keywords will start your automation?
+            </div>
+            <label className="inline-check">
+              <input type="checkbox" checked={form.matchAny} onChange={(e) => set("matchAny", e.target.checked)} />
+              Trigger on any {form.type === "DM" ? "message" : "comment"} (ignore keywords)
+            </label>
+            {!form.matchAny && (
+              <div style={{ marginTop: 12 }}>
+                <div className="kw-list">
+                  {form.keywords.map((k, i) => (
+                    <div className="kw-row" key={i}>
+                      <input value={k.keyword} onChange={(e) => setKeyword(i, e.target.value)} placeholder="e.g. link" />
+                      {form.keywords.length > 1 && (
+                        <button className="icon-btn" onClick={() => removeKeyword(i)}>✕</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button className="link-btn" onClick={addKeyword}>+ Add keyword</button>
+              </div>
+            )}
+          </div>
 
           {isComment && (
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Public reply on the comment (optional)</label>
-              <input value={form.publicReply || ""} onChange={(e) => set("publicReply", e.target.value)} placeholder="Sent you a DM! 📩" />
+            <div className="config-section">
+              <div className="config-label">What do you want to reply to those comments?</div>
+              <input value={form.publicReply || ""} onChange={(e) => set("publicReply", e.target.value)}
+                     placeholder="Sent you a DM! 📩 (optional public reply)" />
             </div>
           )}
         </div>
       </div>
+
+      {showPicker && (
+        <PostPicker
+          accountId={form.igAccountId}
+          selectedId={form.igMediaId}
+          onSelect={(m) => { set("igMediaId", m.id); setSelectedMedia(m); setShowPicker(false); }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
 
       {/* Response Flow */}
       <h2 className="flow-section-title">Response Flow</h2>

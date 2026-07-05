@@ -19,11 +19,33 @@ import java.util.Map;
 public class InstagramClient {
 
     private final WebClient web;
+    private final WebClient igWeb;
     private final AppProperties props;
 
     public InstagramClient(AppProperties props) {
         this.props = props;
         this.web = WebClient.builder().baseUrl(props.getInstagram().getGraphBaseUrl()).build();
+        this.igWeb = WebClient.builder().baseUrl(props.getInstagram().getIgGraphBaseUrl()).build();
+    }
+
+    /**
+     * List the connected account's recent media (posts + reels) via the
+     * Instagram Graph API, so the creator can pick a post visually instead of
+     * pasting a media id.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> listMedia(String accessToken, String igUserId) {
+        Map<?, ?> res = igWeb.get()
+                .uri(b -> b.path("/" + igUserId + "/media")
+                        .queryParam("fields", "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp")
+                        .queryParam("limit", 50)
+                        .queryParam("access_token", accessToken)
+                        .build())
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+        if (res == null || res.get("data") == null) return List.of();
+        return (List<Map<String, Object>>) res.get("data");
     }
 
     /** Send a plain-text DM to an Instagram-scoped user id (IGSID). */

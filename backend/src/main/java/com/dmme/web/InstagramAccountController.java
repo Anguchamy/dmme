@@ -3,10 +3,14 @@ package com.dmme.web;
 import com.dmme.domain.InstagramAccount;
 import com.dmme.repository.InstagramAccountRepository;
 import com.dmme.service.CurrentUserService;
+import com.dmme.service.InstagramClient;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
  * Manage the creator's connected Instagram account(s).
@@ -21,10 +25,13 @@ public class InstagramAccountController {
 
     private final InstagramAccountRepository repo;
     private final CurrentUserService currentUser;
+    private final InstagramClient instagram;
 
-    public InstagramAccountController(InstagramAccountRepository repo, CurrentUserService currentUser) {
+    public InstagramAccountController(InstagramAccountRepository repo, CurrentUserService currentUser,
+                                      InstagramClient instagram) {
         this.repo = repo;
         this.currentUser = currentUser;
+        this.instagram = instagram;
     }
 
     @GetMapping
@@ -55,6 +62,26 @@ public class InstagramAccountController {
         repo.save(acc);
         return Map.of("id", acc.getId(), "igUsername",
                 acc.getIgUsername() != null ? acc.getIgUsername() : "");
+    }
+
+    /** Recent posts + reels for the connected account, for the visual post picker. */
+    @GetMapping("/{id}/media")
+    public List<Map<String, Object>> media(@PathVariable Long id) {
+        InstagramAccount acc = repo.findById(id)
+                .filter(a -> a.getUserId().equals(currentUser.userId()))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Instagram account not found"));
+
+        return instagram.listMedia(acc.getPageAccessToken(), acc.getIgUserId()).stream()
+                .map(m -> {
+                    Object thumb = m.getOrDefault("thumbnail_url", m.get("media_url"));
+                    return Map.<String, Object>of(
+                            "id", String.valueOf(m.get("id")),
+                            "caption", m.get("caption") != null ? m.get("caption") : "",
+                            "mediaType", m.get("media_type") != null ? m.get("media_type") : "",
+                            "thumbnail", thumb != null ? thumb : "",
+                            "permalink", m.get("permalink") != null ? m.get("permalink") : "");
+                })
+                .toList();
     }
 
     @DeleteMapping("/{id}")
