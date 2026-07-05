@@ -1,29 +1,31 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { IconComment, IconReply, IconFunnel, IconGrowth, IconRocket, IconCheck } from "../components/DashIcons";
 
 function LockIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="10" width="16" height="10" rx="2.5" fill="#fff" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="15" r="1.6" fill="#2563eb" />
+      <circle cx="12" cy="15" r="1.6" fill="#7c3aed" />
     </svg>
   );
 }
 
 const QUICK_ACTIONS = [
-  { title: "Grow Followers", desc: "Increase followers with automation-driven engagement." },
-  { title: "Auto-reply DMs", desc: "Send instant replies to every incoming message." },
-  { title: "Capture Leads", desc: "Ask questions in the DM and collect emails & phones." },
-  { title: "Comment triggers", desc: "Reply to comments and slide into the DMs instantly." },
+  { key: "comment", title: "Auto DM from Comments", desc: "Send DMs to users who comment on your posts.", Icon: IconComment, badge: "POPULAR", badgeClass: "qa-badge--pop" },
+  { key: "growth", title: "Grow Followers", desc: "Boost engagement with automated replies.", Icon: IconGrowth, badge: "TRENDING", badgeClass: "qa-badge--trend" },
+  { key: "leads", title: "Generate Leads", desc: "Capture emails & phones right inside the DM.", Icon: IconFunnel, badge: "PRO", badgeClass: "qa-badge--pro" },
+  { key: "reply", title: "Auto-reply DMs", desc: "Never miss a message with instant responses.", Icon: IconReply, badge: "PRO", badgeClass: "qa-badge--pro" },
 ];
 
 export default function Overview() {
   const [summary, setSummary] = useState(null);
   const [me, setMe] = useState(null);
   const [accounts, setAccounts] = useState([]);
+  const [automationCount, setAutomationCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -31,47 +33,87 @@ export default function Overview() {
   useEffect(() => {
     api.get("/api/analytics/summary").then(setSummary).catch(() => {});
     api.get("/api/me").then(setMe).catch(() => {});
-    api
-      .get("/api/instagram/accounts")
+    api.get("/api/automations").then((d) => setAutomationCount(Array.isArray(d) ? d.length : 0)).catch(() => {});
+    api.get("/api/instagram/accounts")
       .then((d) => setAccounts(Array.isArray(d) ? d : []))
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
 
   const notConnected = loaded && accounts.length === 0;
+  const isFree = !me?.planCode || me.planCode === "FREE";
   const displayName =
-    me?.fullName ||
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    me?.email ||
-    user?.email ||
-    "there";
+    me?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name ||
+    me?.email || user?.email || "there";
   const firstName = displayName.split(/[ @]/)[0];
+
+  const steps = [
+    { label: "Connect Instagram", done: accounts.length > 0, go: "/app/settings" },
+    { label: "Set up your profile", done: !!me?.fullName, go: "/app/settings" },
+    { label: "Create your first automation", done: automationCount > 0, go: "/app/automations/new" },
+    { label: "Send your first auto DM", done: (summary?.dmsSent30d ?? 0) > 0, go: "/app/automations" },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  const progressPct = Math.round((doneCount / steps.length) * 100);
 
   return (
     <div className="overview">
-      <h1 style={{ marginTop: 0 }}>Welcome back, {firstName}</h1>
+      <h1 style={{ marginTop: 0 }}>Welcome back, {firstName} 👋</h1>
+
+      {isFree && (
+        <div className="pro-banner">
+          <div className="pro-banner-text">
+            <div className="pro-banner-title"><IconRocket /> Unlock Pro Power!</div>
+            <div className="pro-banner-sub">Get unlimited automations, contacts & advanced analytics.</div>
+          </div>
+          <button className="pro-banner-btn" onClick={() => navigate("/app/billing")}>Upgrade to Pro</button>
+        </div>
+      )}
 
       <div className="overview-body">
         <div className={notConnected ? "gate-behind" : ""}>
-          <div className="metrics">
-            <div className="metric"><div className="v">{summary?.dmsSent30d ?? "—"}</div><div className="l">DMs sent (30d)</div></div>
-            <div className="metric"><div className="v">{summary?.dmsReceived30d ?? "—"}</div><div className="l">Messages received (30d)</div></div>
-            <div className="metric"><div className="v">{summary?.totalLeads ?? "—"}</div><div className="l">Total leads</div></div>
-            <div className="metric"><div className="v">{me?.planCode ?? "—"}</div><div className="l">Current plan</div></div>
+          <div className="dash-columns">
+            <div className="getstarted card">
+              <div className="row-flex" style={{ justifyContent: "space-between" }}>
+                <h3 style={{ margin: 0 }}>Get started</h3>
+                <span className="gs-pct">{progressPct}% complete</span>
+              </div>
+              <div className="gs-bar"><div className="gs-fill" style={{ width: `${progressPct}%` }} /></div>
+              <ul className="gs-list">
+                {steps.map((st) => (
+                  <li key={st.label} className={st.done ? "gs-done" : ""} onClick={() => !st.done && navigate(st.go)}>
+                    <span className={`gs-check${st.done ? " gs-check--on" : ""}`}>{st.done && <IconCheck />}</span>
+                    <span className="gs-label">{st.label}</span>
+                    {!st.done && <span className="gs-cta">Do it →</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="quick-actions">
+              <div className="row-flex" style={{ justifyContent: "space-between", marginBottom: 12 }}>
+                <h3 style={{ margin: 0 }}>Quick actions</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate("/app/automations/new")}>+ Create new</button>
+              </div>
+              <div className="qa-grid">
+                {QUICK_ACTIONS.map(({ key, title, desc, Icon, badge, badgeClass }) => (
+                  <button className="qa-card" key={key} onClick={() => navigate("/app/automations/new")}>
+                    <span className="qa-icon"><Icon /></span>
+                    <span className={`qa-badge ${badgeClass}`}>{badge}</span>
+                    <span className="qa-title">{title}</span>
+                    <span className="qa-desc">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="row-flex" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>Quick actions</h2>
-            <Link to="/app/automations/new" className="btn btn-primary btn-sm">+ New automation</Link>
-          </div>
-          <div className="grid">
-            {QUICK_ACTIONS.map((q) => (
-              <div className="card" key={q.title}>
-                <h3>{q.title}</h3>
-                <p>{q.desc}</p>
-              </div>
-            ))}
+          <h3 className="metrics-head">Metrics <span>Last 30 days</span></h3>
+          <div className="metrics">
+            <div className="metric"><div className="v">{summary?.dmsSent30d ?? "—"}</div><div className="l">Messages sent</div></div>
+            <div className="metric"><div className="v">{summary?.dmsReceived30d ?? "—"}</div><div className="l">Messages received</div></div>
+            <div className="metric"><div className="v">{summary?.totalLeads ?? "—"}</div><div className="l">Total leads</div></div>
+            <div className="metric"><div className="v">{me?.planCode ?? "—"}</div><div className="l">Current plan</div></div>
           </div>
         </div>
 
@@ -87,6 +129,9 @@ export default function Overview() {
               <button className="btn btn-primary" onClick={() => navigate("/app/settings")}>
                 Connect Instagram
               </button>
+              <p className="ig-gate-trust">
+                Secure official Instagram login · Trusted by <strong>1,000+ creators</strong>
+              </p>
             </div>
           </div>
         )}

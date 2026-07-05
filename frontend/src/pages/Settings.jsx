@@ -12,6 +12,23 @@ function InstagramGlyph() {
   );
 }
 
+function LockGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="10.5" width="16" height="10" rx="2.5" stroke="currentColor" strokeWidth="2" />
+      <path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function StarGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.77l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L12 3.5z" />
+    </svg>
+  );
+}
+
 export default function Settings() {
   const [me, setMe] = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -127,6 +144,17 @@ export default function Settings() {
           Connect a Business or Creator Instagram account to start automating comments, story
           replies, and DMs. You'll be redirected to Instagram to authorize dmme.
         </p>
+
+        <div className="trust-row">
+          <span className="trust-item">
+            <LockGlyph />
+            Secure official Instagram login — we never see your password
+          </span>
+          <span className="trust-item">
+            <StarGlyph />
+            Trusted by <strong>1,000+ creators</strong>
+          </span>
+        </div>
 
         {accounts.length === 0 ? (
           <p style={{ color: "var(--muted)" }}>No accounts connected yet.</p>
