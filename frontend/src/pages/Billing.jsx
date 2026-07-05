@@ -44,13 +44,17 @@ export default function Billing() {
 
   return (
     <div>
-      <h1>Billing</h1>
-      <p style={{ color: "var(--muted)" }}>
-        Current plan: <span className="tag">{me?.planCode || "FREE"}</span>
-      </p>
-      {msg && <div className="card" style={{ marginBottom: 16 }}>{msg}</div>}
+      <div className="page-head">
+        <div>
+          <h1>Billing</h1>
+          <p className="page-sub">
+            Current plan: <span className="tag">{me?.planCode || "FREE"}</span>
+          </p>
+        </div>
+      </div>
+      {msg && <div className="banner banner-ok">{msg}</div>}
 
-      <div className="pricing" style={{ marginTop: 20 }}>
+      <div className="pricing" style={{ marginTop: 8 }}>
         {plans.map((p) => {
           const current = me?.planCode === p.code;
           const purchasable = p.priceMinor > 0 && !current;

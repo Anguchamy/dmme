@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
+import UpgradeBanner from "../components/UpgradeBanner";
 
 function InstagramGlyph() {
   return (
@@ -115,7 +116,13 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: 680 }}>
-      <h1>Settings</h1>
+      <UpgradeBanner />
+      <div className="page-head">
+        <div>
+          <h1>Settings</h1>
+          <p className="page-sub">Manage your profile and connected accounts.</p>
+        </div>
+      </div>
       {msg && <div className="banner banner-ok">{msg}</div>}
       {err && <div className="banner banner-err">{err}</div>}
 

@@ -129,6 +129,7 @@ public class AutomationService {
                         s.getButtons(), s.getCollectField(), s.getCustomKey())).toList();
         return new AutomationView(a.getId(), a.getName(), a.getType(), a.getStatus(),
                 a.getIgAccountId(), a.getIgMediaId(), a.isMatchAny(), a.getPublicReply(),
-                a.isAskFollowEnabled(), a.getAskFollowMessage(), kw, st);
+                a.isAskFollowEnabled(), a.getAskFollowMessage(), kw, st,
+                a.getCreatedAt(), a.getUpdatedAt());
     }
 }

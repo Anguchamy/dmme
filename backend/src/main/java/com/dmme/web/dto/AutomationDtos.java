@@ -1,5 +1,6 @@
 package com.dmme.web.dto;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,8 @@ public final class AutomationDtos {
             boolean askFollowEnabled,
             String askFollowMessage,
             List<KeywordDto> keywords,
-            List<StepDto> steps
+            List<StepDto> steps,
+            Instant createdAt,
+            Instant updatedAt
     ) {}
 }

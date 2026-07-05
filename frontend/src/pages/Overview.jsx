@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import { IconComment, IconReply, IconFunnel, IconGrowth, IconRocket, IconCheck } from "../components/DashIcons";
+import { IconComment, IconReply, IconFunnel, IconGrowth, IconCheck } from "../components/DashIcons";
+import UpgradeBanner from "../components/UpgradeBanner";
 
 function LockIcon() {
   return (
@@ -41,7 +42,6 @@ export default function Overview() {
   }, []);
 
   const notConnected = loaded && accounts.length === 0;
-  const isFree = !me?.planCode || me.planCode === "FREE";
   const displayName =
     me?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name ||
     me?.email || user?.email || "there";
@@ -60,15 +60,7 @@ export default function Overview() {
     <div className="overview">
       <h1 style={{ marginTop: 0 }}>Welcome back, {firstName} 👋</h1>
 
-      {isFree && (
-        <div className="pro-banner">
-          <div className="pro-banner-text">
-            <div className="pro-banner-title"><IconRocket /> Unlock Pro Power!</div>
-            <div className="pro-banner-sub">Get unlimited automations, contacts & advanced analytics.</div>
-          </div>
-          <button className="pro-banner-btn" onClick={() => navigate("/app/billing")}>Upgrade to Pro</button>
-        </div>
-      )}
+      <UpgradeBanner />
 
       <div className="overview-body">
         <div className={notConnected ? "gate-behind" : ""}>
