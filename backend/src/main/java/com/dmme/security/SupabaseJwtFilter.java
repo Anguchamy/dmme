@@ -138,27 +138,32 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
     private Map<String, Key> fetchJwks(String issuer) {
         String base = issuer.endsWith("/") ? issuer.substring(0, issuer.length() - 1) : issuer;
         String url = base + "/.well-known/jwks.json";
-        try {
-            HttpResponse<String> res = http.send(
-                    HttpRequest.newBuilder(URI.create(url))
-                            .timeout(Duration.ofSeconds(5)).GET().build(),
-                    HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() != 200) {
-                log.warn("JWKS fetch {} returned {}", url, res.statusCode());
-                return Map.of();
-            }
-            JwkSet set = Jwks.setParser().build().parse(res.body());
-            Map<String, Key> map = new ConcurrentHashMap<>();
-            for (Jwk<?> jwk : set.getKeys()) {
-                if (jwk.getId() != null) {
-                    map.put(jwk.getId(), jwk.toKey());
+        // Retry a couple of times: right after a Render cold start the first
+        // outbound request often times out while the network warms up, which
+        // would otherwise fail every authenticated call until traffic settles.
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                HttpResponse<String> res = http.send(
+                        HttpRequest.newBuilder(URI.create(url))
+                                .timeout(Duration.ofSeconds(10)).GET().build(),
+                        HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() != 200) {
+                    log.warn("JWKS fetch {} returned {}", url, res.statusCode());
+                    return Map.of();
                 }
+                JwkSet set = Jwks.setParser().build().parse(res.body());
+                Map<String, Key> map = new ConcurrentHashMap<>();
+                for (Jwk<?> jwk : set.getKeys()) {
+                    if (jwk.getId() != null) {
+                        map.put(jwk.getId(), jwk.toKey());
+                    }
+                }
+                return map;
+            } catch (Exception e) {
+                log.warn("JWKS fetch from {} failed (attempt {}/3): {}", url, attempt, e.getMessage());
             }
-            return map;
-        } catch (Exception e) {
-            log.warn("Failed to fetch JWKS from {}: {}", url, e.getMessage());
-            return Map.of();
         }
+        return Map.of();
     }
 
     /** Reads the (unverified) "iss" claim so we know which JWKS to fetch. */
