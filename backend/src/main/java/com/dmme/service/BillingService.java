@@ -95,7 +95,7 @@ public class BillingService {
                     "planCode", planCode);
         } catch (Exception e) {
             log.error("Failed to create Razorpay order", e);
-            throw new ResponseStatusException(BAD_REQUEST, "Could not create order");
+            throw new ResponseStatusException(BAD_REQUEST, "Could not create order: " + e.getMessage());
         }
     }
 
