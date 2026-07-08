@@ -472,7 +472,6 @@ export default function Landing() {
         </Link>
         <div className="landing-nav-links">
           <Link to="/login">Pricing</Link>
-          <Link to="/login">Affiliate</Link>
           <a href="#faq">Help Centre</a>
         </div>
         <div className="landing-nav-actions">
