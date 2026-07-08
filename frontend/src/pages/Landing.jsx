@@ -640,15 +640,10 @@ export default function Landing() {
           <div className="landing-footer-col">
             <h4>Company</h4>
             <Link to="/login">Pricing</Link>
-            <Link to="/login">Terms &amp; Conditions</Link>
+            <Link to="/terms">Terms &amp; Conditions</Link>
             <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/login">Contact Us</Link>
-            <Link to="/login">Refund Policy</Link>
-          </div>
-          <div className="landing-footer-col">
-            <h4>Compare</h4>
-            <Link to="/login">Vs Manychat</Link>
-            <Link to="/login">Vs LinkDM</Link>
+            <Link to="/contact">Contact Us</Link>
+            <Link to="/refund">Refund Policy</Link>
           </div>
           <div className="landing-footer-col landing-footer-col--muted">
             <h4>

@@ -142,7 +142,10 @@ export default function Privacy() {
         <div className="brand" style={{ marginBottom: 8 }}>{brand.name}</div>
         <div className="row-flex" style={{ justifyContent: "center", gap: 16, marginBottom: 8 }}>
           <Link to="/">Home</Link>
+          <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
+          <Link to="/refund">Refund</Link>
+          <Link to="/contact">Contact</Link>
         </div>
         <div>© {new Date().getFullYear()} {brand.name}. Not affiliated with Instagram or Meta.</div>
       </footer>
