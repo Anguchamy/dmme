@@ -1,153 +1,593 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { brand } from "../config/brand";
-import { api } from "../lib/api";
-import Backdrop3D from "../components/Backdrop3D";
-import Tilt from "../components/Tilt";
+import { Logo, LogoMark } from "../components/Logo";
+
+const CREATORS = [
+  { handle: "@elementec", followers: "1.2M+ Followers", tag: "Travel", img: "https://picsum.photos/seed/dmme-travel/300/420" },
+  { handle: "@ezsnippet", followers: "3.3M+ Followers", tag: "Education", img: "https://picsum.photos/seed/dmme-edu/300/420" },
+  { handle: "@fit.saswati", followers: "35K+ Followers", tag: "Yoga", img: "https://picsum.photos/seed/dmme-yoga/300/420" },
+  { handle: "@glowbyrhea", followers: "670K+ Followers", tag: "Beauty", img: "https://picsum.photos/seed/dmme-beauty/300/420" },
+  { handle: "@coach.dev", followers: "95K+ Followers", tag: "Startup", img: "https://picsum.photos/seed/dmme-startup/300/420" },
+  { handle: "@thefoodloop", followers: "820K+ Followers", tag: "Local Business", img: "https://picsum.photos/seed/dmme-local/300/420" },
+  { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", img: "https://picsum.photos/seed/dmme-lifestyle/300/420" },
+  { handle: "@aria.beats", followers: "2.1M+ Followers", tag: "Music", img: "https://picsum.photos/seed/dmme-music/300/420" },
+];
 
 const FEATURES = [
-  ["Comment automation", "Reply to comments and slide into the DMs with your link instantly."],
-  ["Story automation", "Auto-respond to story replies and reactions in real time."],
-  ["Live automation", "Message followers who engage while you're live."],
-  ["DM automation", "Auto-reply to anyone who messages you, day or night."],
-  ["Ask for follow", "Gate your link behind a follow so viewers become followers."],
-  ["Re-trigger", "Re-run automations on older posts so no lead slips away."],
-  ["Lead capture", "Ask questions in the DM to collect emails and phone numbers."],
-  ["Analytics", "Track DMs, replies, and conversions from one dashboard."],
+  {
+    title: "Comment Automation",
+    desc: "Reply to comments and send a DM to engage your followers.",
+    mock: "comment",
+  },
+  {
+    title: "Story Automation",
+    desc: "Auto respond to story replies and reactions.",
+    mock: "story",
+  },
+  {
+    title: "Live Automation",
+    desc: "Send a message to followers who are active during lives.",
+    mock: "live",
+  },
+  {
+    title: "DM Automation",
+    desc: "Automatically reply to the followers who messages you.",
+    mock: "dm",
+  },
+  {
+    title: "Ask For Follow",
+    desc: "Ask users to follow you before sending the message.",
+    mock: "follow",
+  },
+  {
+    title: "Re-trigger",
+    desc: "Re-trigger automations for old posts and never loose customers.",
+    mock: "retrigger",
+  },
+  {
+    title: "Collect User Data",
+    desc: "Create your email list to re target audience.",
+    mock: "data",
+  },
+  {
+    title: "dmme AI",
+    desc: "Convert more users with the help of AI ✨",
+    mock: "ai",
+    comingSoon: true,
+  },
 ];
 
 const STEPS = [
-  ["Step 1", "Choose a trigger", "Pick the keywords that activate your automation."],
-  ["Step 2", "Build the reply", "Craft the DM flow with links, offers, and questions."],
-  ["Step 3", "Grow on autopilot", "Let automation handle replies while you create."],
+  {
+    n: "STEP 1",
+    title: "Choose Trigger",
+    desc: "Choose which keywords activate your automation.",
+    icon: "cursor",
+  },
+  {
+    n: "STEP 2",
+    title: "Automate Response",
+    desc: "Setup custom responses with links and offers to share.",
+    icon: "envelope",
+  },
+  {
+    n: "STEP 3",
+    title: "Go Viral 🚀",
+    desc: "Let automations do the magic while you focus on creating.",
+    icon: "rocket",
+  },
 ];
 
-// Sample testimonials (illustrative placeholders — replace with your own).
 const REVIEWS = [
-  ["Aditya R.", "Creator", "Setup took five minutes and my Reels now convert comments into email signups automatically."],
-  ["Neha S.", "Boutique owner", "The ask-for-follow gate doubled my follower growth in a month. Genuinely simple to use."],
-  ["Karan M.", "Coach", "I collect leads in my sleep now. The DM question flow is exactly what I needed."],
+  {
+    name: "Kushank",
+    handle: "@khushankmathurcuet",
+    text: "I gained 6000+ followers in just 20 days using dmme. The ask-for-follow automation is a game-changer for Reels.",
+    img: "https://picsum.photos/seed/dmme-kushank/80/80",
+  },
+  {
+    name: "Manoj",
+    handle: "@missionudyog",
+    text: "A must-have for any creator. Comment-to-DM flows convert way better than link-in-bio. Genuinely simple setup.",
+    img: "https://picsum.photos/seed/dmme-manoj/80/80",
+  },
+  {
+    name: "Shruti",
+    handle: "@desi.potatoo",
+    text: "Love the easy UI and multiple features. Story and comment automations run 24/7 while I focus on content.",
+    img: "https://picsum.photos/seed/dmme-shruti/80/80",
+  },
+  {
+    name: "Aditya",
+    handle: "@aditya.creates",
+    text: "Setup took five minutes and my Reels now convert comments into email signups automatically.",
+    img: "https://picsum.photos/seed/dmme-aditya/80/80",
+  },
 ];
 
 const FAQS = [
-  ["Is there a free plan?", "Yes. The free plan includes 1,000 DM replies a month and unlimited automations — no card required."],
-  ["Is it safe for my account?", "We use Meta's official Instagram Messaging API, so automations run within Instagram's approved framework."],
-  ["Can I upgrade later?", "Absolutely. Start free and move to Pro whenever you're ready for unlimited replies."],
-  ["How do I get support?", "Email support on every plan, with priority support on Pro and above."],
+  [
+    "Is dmme free?",
+    "Yes. Start free with generous monthly DM replies and unlimited automations — no credit card required.",
+  ],
+  [
+    "Is dmme safe to use?",
+    "We use Meta's official Instagram Messaging API, so automations run within Instagram's approved framework.",
+  ],
+  [
+    "How do I contact customer support if I need help?",
+    "Email us anytime at contact@dmme.co.in. We respond on every plan, with priority support on paid tiers.",
+  ],
 ];
 
-export default function Landing() {
-  const [plans, setPlans] = useState([]);
+const LANDING_STATS = [
+  ["30M+", "DMs Sent"],
+  ["5M+", "Followers Gained"],
+  ["10M+", "Comments Sent"],
+  ["12+", "Countries"],
+];
 
-  useEffect(() => {
-    api.get("/api/plans").then(setPlans).catch(() => setPlans([]));
-  }, []);
+function MetaIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 2C8.5 2 6 5.5 6 9c0 3 1.5 5.5 4 7.5 1.2 1 2.5 1.5 2 2.5-.3.7-1.2.5-1.8.2C7.5 17.5 4 14 4 9 4 4.5 7.5 0 12 0s8 4.5 8 9c0 5-3.5 8.5-6.2 10.2-.6.3-1.5.5-1.8-.2-.5-1 .8-1.5 2-2.5 2.5-2 4-4.5 4-7.5 0-3.5-2.5-7-6-7z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
-  const price = (p) =>
-    p.priceMinor === 0 ? "Free" : `₹${(p.priceMinor / 100).toLocaleString("en-IN")}`;
+function IgIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.6" cy="6.4" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrustBadges({ variant = "hero" }) {
+  const items = ["Meta Verified", "No Credit Card", "Instant Setup"];
+  return (
+    <div className={`landing-trust landing-trust--${variant}`}>
+      {items.map((item) => (
+        <span key={item}>
+          <CheckIcon /> {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CreatorCard({ c }) {
+  return (
+    <div className="creator-card">
+      <img src={c.img} alt="" loading="lazy" />
+      <div className="creator-meta">
+        <span className="cat-chip">{c.tag}</span>
+        <div className="creator-handle">{c.handle}</div>
+        <div className="creator-followers">
+          <IgIcon /> {c.followers}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarqueeRow({ items }) {
+  const loop = [...items, ...items];
+  return (
+    <div className="marquee-row">
+      <div className="marquee-track">
+        {loop.map((c, i) => (
+          <CreatorCard key={`${c.handle}-${i}`} c={c} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeatureMock({ type }) {
+  switch (type) {
+    case "comment":
+      return (
+        <div className="landing-fmock landing-fmock--light">
+          <div className="landing-fmock-head">Comments</div>
+          <div className="landing-fmock-row">
+            <span className="landing-fmock-av" />
+            <div>
+              <strong>Etienne</strong>
+              <p>Do you ship in Italy?</p>
+            </div>
+          </div>
+          <div className="landing-fmock-row muted">
+            <span className="landing-fmock-av sm" />
+            <div>
+              <strong>muted_poetry</strong>
+              <p>@etienne We ship in all Europe!</p>
+            </div>
+          </div>
+        </div>
+      );
+    case "story":
+      return (
+        <div className="landing-fmock landing-fmock--dark">
+          <p>React with 🔥 to get early access to tickets!</p>
+          <div className="landing-fmock-bubble user">That&apos;s crazyyyy!!</div>
+        </div>
+      );
+    case "live":
+      return (
+        <div className="landing-fmock landing-fmock--live">
+          <span className="landing-live-badge">LIVE</span>
+          <div className="landing-fmock-row">
+            <span className="landing-fmock-av sm" />
+            <div><strong>pierredemilly</strong> joined</div>
+          </div>
+          <div className="landing-fmock-row">
+            <span className="landing-fmock-av sm" />
+            <div><strong>katelin</strong> Welcome!</div>
+          </div>
+        </div>
+      );
+    case "dm":
+      return (
+        <div className="landing-fmock landing-fmock--light">
+          <div className="landing-fmock-bubble user">Hey! I love your music!</div>
+          <div className="landing-fmock-bubble bot">Thank you so much, it means a lot</div>
+        </div>
+      );
+    case "follow":
+      return (
+        <div className="landing-fmock landing-fmock--light">
+          <div className="landing-fmock-bubble bot">Please Follow me for the link</div>
+          <div className="landing-fmock-bubble user">I Followed ✅</div>
+          <div className="landing-fmock-bubble bot">
+            Thanks! Here&apos;s the link 👇
+            <span className="landing-fmock-btn">Click Here</span>
+          </div>
+        </div>
+      );
+    case "retrigger":
+      return (
+        <div className="landing-fmock landing-fmock--icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="32" r="24" stroke="#2b2bff" strokeWidth="3" strokeDasharray="6 4" />
+            <path d="M32 14v8M32 42v8M14 32h8M42 32h8" stroke="#2b2bff" strokeWidth="2" />
+            <path d="M26 22l4 6 8-10" stroke="#2b2bff" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          <span>Re-Trigger</span>
+        </div>
+      );
+    case "data":
+      return (
+        <div className="landing-fmock landing-fmock--light">
+          <div className="landing-fmock-bubble bot">Please Share Your Email!</div>
+          <div className="landing-fmock-bubble user">ig_user@gmail.com</div>
+          <div className="landing-fmock-bubble bot">Sent on Mail 😊</div>
+        </div>
+      );
+    case "ai":
+      return (
+        <div className="landing-fmock landing-fmock--icon">
+          <span className="landing-ai-star">✦</span>
+          <span>dmme AI</span>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function StepIcon({ type }) {
+  if (type === "cursor") {
+    return (
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="16" stroke="#2b2bff" strokeWidth="2" strokeDasharray="4 3" />
+        <path d="M18 30l-4 8 8-4 14-14-6-6-12 12z" fill="#1a1a2e" />
+      </svg>
+    );
+  }
+  if (type === "envelope") {
+    return (
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="8" y="14" width="32" height="22" rx="3" stroke="#1a1a2e" strokeWidth="2" />
+        <path d="M8 16l16 12 16-12" stroke="#1a1a2e" strokeWidth="2" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <path d="M24 8l4 12h12l-10 8 4 12-10-8-10 8 4-12-10-8h12l4-12z" fill="#2b2bff" opacity="0.2" />
+      <path d="M24 12v24M16 28h16" stroke="#2b2bff" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SocialIcon({ type }) {
+  if (type === "instagram") {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="2" />
+        <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M23 7.5a3 3 0 00-2-2C19.3 5 12 5 12 5s-7.3 0-9 0.5a3 3 0 00-2 2A31 31 0 001 12a31 31 0 00.5 4.5 3 3 0 002 2C4.7 19 12 19 12 19s7.3 0 9-.5a3 3 0 002-2A31 31 0 0023 12a31 31 0 00-.5-4.5zM10 15.5v-7l6 3.5-6 3.5z" />
+    </svg>
+  );
+}
+
+function PhoneMockup() {
+  return (
+    <div className="landing-phone-wrap">
+      <div className="landing-float landing-float--followers">
+        <span>👤</span>
+        <div>
+          <strong>1K</strong>
+          <small>2X Followers</small>
+        </div>
+      </div>
+      <div className="landing-float landing-float--sales">
+        <span>💸</span>
+        <small>+50% Sales</small>
+      </div>
+      <div className="landing-float landing-float--viral">
+        <span>🚀</span>
+        <small>Go Viral</small>
+      </div>
+
+      <div className="landing-phone">
+        <div className="landing-phone-notch" />
+        <div className="landing-phone-screen">
+          <div className="landing-phone-grid" />
+          <div className="landing-phone-comment">
+            <img src="https://picsum.photos/seed/dmme-sofia/32/32" alt="" />
+            <div>
+              <strong>Sofia Bennett</strong>
+              <span>LINK please! ❤️</span>
+            </div>
+          </div>
+          <div className="landing-phone-dm">
+            <p>Here&apos;s the link you asked for. Enjoy!</p>
+            <button type="button">Open</button>
+          </div>
+          <div className="landing-phone-nav">
+            <span>⌂</span><span>🔍</span><span>＋</span><span>▶</span><span>👤</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatIllustration({ variant = "convert" }) {
+  const photo =
+    variant === "convert"
+      ? "https://picsum.photos/seed/dmme-convert/520/520"
+      : "https://picsum.photos/seed/dmme-boost/520/520";
+
+  if (variant === "convert") {
+    return (
+      <div className={`landing-illus landing-illus--${variant}`}>
+        <img src={photo} alt="" className="landing-illus-photo" />
+        <div className="landing-chat landing-chat--1">
+          <img src="https://picsum.photos/seed/dmme-creator1/28/28" alt="" />
+          <div>
+            <p>Wait! Don&apos;t miss out! Follow me first and click on I&apos;m following to grab the link</p>
+            <span className="landing-chat-btn">I&apos;m following</span>
+          </div>
+        </div>
+        <div className="landing-chat landing-chat--user">I&apos;m following</div>
+        <div className="landing-chat landing-chat--2">
+          <img src="https://picsum.photos/seed/dmme-creator1/28/28" alt="" />
+          <div>
+            <p>Amazing! You did it! Here&apos;s the link and thanks for the follow!</p>
+            <span className="landing-chat-btn">Get Guide</span>
+          </div>
+        </div>
+        <div className="landing-illus-badge">👤 1K</div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <nav className="nav">
-        <div className="brand">{brand.name}</div>
-        <div className="row-flex">
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <Link to="/login" className="btn btn-ghost btn-sm">Sign in</Link>
-          <Link to="/login" className="btn btn-primary btn-sm">Start free</Link>
+    <div className={`landing-illus landing-illus--${variant}`}>
+      <img src={photo} alt="" className="landing-illus-photo" />
+      <div className="landing-chat landing-chat--1">
+        <img src="https://picsum.photos/seed/dmme-creator2/28/28" alt="" />
+        <div>
+          <p>Hey there! Thanks so much for your interest. Click below and I&apos;ll send you the link in just a sec</p>
+          <span className="landing-chat-btn">Send me the link</span>
+        </div>
+      </div>
+      <div className="landing-chat landing-chat--user">Send me the link</div>
+      <div className="landing-chat landing-chat--2">
+        <img src="https://picsum.photos/seed/dmme-creator2/28/28" alt="" />
+        <div>
+          <p>Hey! Here&apos;s your link! Enjoy</p>
+          <span className="landing-chat-btn">Get Link</span>
+        </div>
+      </div>
+      <div className="landing-illus-badge heart">❤️ 9994</div>
+    </div>
+  );
+}
+
+function SplitSection({ reverse, title, text, variant }) {
+  return (
+    <section className={`landing-split${reverse ? " landing-split--reverse" : ""}`}>
+      <div className="landing-split-visual">
+        <ChatIllustration variant={variant} />
+      </div>
+      <div className="landing-split-copy">
+        <h2>{title}</h2>
+        <p>{text}</p>
+        <Link to="/login" className="landing-btn landing-btn--blue">Start For Free</Link>
+        <TrustBadges variant="light" />
+      </div>
+    </section>
+  );
+}
+
+export default function Landing() {
+  return (
+    <div className="landing">
+      <nav className="landing-nav">
+        <Link to="/" className="landing-nav-logo">
+          <Logo size={28} />
+        </Link>
+        <div className="landing-nav-links">
+          <Link to="/login">Pricing</Link>
+          <Link to="/login">Affiliate</Link>
+          <a href="#faq">Help Centre</a>
+        </div>
+        <div className="landing-nav-actions">
+          <Link to="/login" className="landing-nav-login">Login</Link>
+          <Link to="/login" className="landing-btn landing-btn--blue landing-btn--sm">Start for free</Link>
         </div>
       </nav>
 
-      <header className="hero">
-        <Backdrop3D />
-        <h1>{brand.tagline}</h1>
-        <p>{brand.subtitle}</p>
-        <Link to="/login" className="btn btn-primary">Start for free</Link>
-        <div className="badges">
-          <span>✓ Meta official API</span>
-          <span>✓ No credit card</span>
-          <span>✓ Instant setup</span>
+      <header className="landing-hero">
+        <div className="landing-hero-inner">
+          <div className="landing-hero-copy">
+            <div className="landing-meta-badge">
+              <LogoMark size={22} />
+              <span className="landing-meta-x">×</span>
+              <span className="landing-meta-label">
+                <MetaIcon /> Meta
+              </span>
+            </div>
+            <h1>Go Viral On IG with DM Automation</h1>
+            <p>
+              Keep your audience and the IG algorithm happy by auto-responding to every comment in a DM.
+            </p>
+            <Link to="/login" className="landing-btn landing-btn--green">Start For Free</Link>
+            <TrustBadges variant="hero" />
+          </div>
+          <div className="landing-hero-visual">
+            <PhoneMockup />
+          </div>
         </div>
       </header>
 
-      <div className="stats">
-        <div className="stat"><div className="num">10k+</div><div className="lbl">Creators</div></div>
-        <div className="stat"><div className="num">30M+</div><div className="lbl">DMs sent</div></div>
-        <div className="stat"><div className="num">5M+</div><div className="lbl">Leads captured</div></div>
-        <div className="stat"><div className="num">12+</div><div className="lbl">Countries</div></div>
-      </div>
-
-      <section className="section" id="features">
-        <h2>Everything you need</h2>
-        <p className="lead">Unlock the full power of Instagram automation.</p>
-        <div className="grid">
-          {FEATURES.map(([t, d]) => (
-            <Tilt className="card" key={t}>
-              <h3>{t}</h3>
-              <p>{d}</p>
-            </Tilt>
+      <section className="landing-creators" id="creators">
+        <h2>
+          <span>10k+</span> Creators Trust dmme 🚀
+        </h2>
+        <div className="landing-marquee marquee-stack">
+          <MarqueeRow items={CREATORS} />
+        </div>
+        <div className="landing-stats-row">
+          {LANDING_STATS.map(([num, lbl]) => (
+            <div key={lbl} className="landing-stat">
+              <div className="landing-stat-num">{num}</div>
+              <div className="landing-stat-lbl">{lbl}</div>
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="section" style={{ background: "var(--bg-soft)" }}>
-        <h2>3 easy steps</h2>
-        <p className="lead">Unlimited possibilities.</p>
-        <div className="steps">
-          {STEPS.map(([n, t, d]) => (
-            <Tilt className="step card" key={n} max={7}>
-              <div className="n">{n}</div>
-              <h3>{t}</h3>
-              <p>{d}</p>
-            </Tilt>
-          ))}
-        </div>
-      </section>
+      <SplitSection
+        variant="convert"
+        title="Convert More Followers!"
+        text="Ensure your discounts, offers, or exclusives are going to only real, actual Instagram followers with Ask for a Follow automation"
+      />
 
-      <section className="section" id="pricing">
-        <h2>Simple, transparent pricing</h2>
-        <p className="lead">Start free, upgrade when you're ready.</p>
-        <div className="pricing">
-          {plans.map((p) => (
-            <Tilt className={`plan ${p.code === "PRO" ? "featured" : ""}`} key={p.code} max={6}>
-              <h3>{p.name}</h3>
-              <div className="price">
-                {price(p)}
-                {p.priceMinor > 0 && <span style={{ fontSize: 15, color: "var(--muted)" }}> /mo</span>}
+      <SplitSection
+        reverse
+        variant="boost"
+        title="Boost Engagement!"
+        text="Auto-respond to every Instagram comment in a DM. Keep your audience (and the algorithm) happy — and watch your revenue grow"
+      />
+
+      <section className="landing-features" id="features">
+        <p className="landing-overline">ALL THE FEATURES YOU NEED</p>
+        <h2>Unlock the full Power of Instagram</h2>
+        <div className="landing-features-grid">
+          {FEATURES.map((f) => (
+            <article className="landing-feature-card" key={f.title}>
+              <div className="landing-feature-mock">
+                <FeatureMock type={f.mock} />
               </div>
-              <ul>
-                {(p.features || []).map((f) => (
-                  <li key={f}>{f}</li>
-                ))}
-              </ul>
-              <Link to="/login" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-                {p.code === "AGENCY" ? "Contact us" : "Get started"}
-              </Link>
-            </Tilt>
+              <div className="landing-feature-body">
+                <h3>
+                  {f.title}
+                  {f.comingSoon && <span className="landing-soon">Coming Soon</span>}
+                </h3>
+                <p>{f.desc}</p>
+              </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="section" style={{ background: "var(--bg-soft)" }}>
-        <h2>What people are saying</h2>
-        <p className="lead">Loved by creators and small businesses.</p>
-        <div className="reviews">
-          {REVIEWS.map(([who, role, text]) => (
-            <Tilt className="review card" key={who} max={7}>
-              <div className="stars">★★★★★</div>
-              <div className="who">{who}</div>
-              <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 10 }}>{role}</div>
-              <p>{text}</p>
-            </Tilt>
+      <section className="landing-how">
+        <p className="landing-overline landing-overline--blue">HOW IT WORKS</p>
+        <h2>
+          3 Easy Steps, <span>Unlimited</span> Possibilities
+        </h2>
+        <div className="landing-steps">
+          {STEPS.map((s, i) => (
+            <div className="landing-step-wrap" key={s.n}>
+              <div className="landing-step">
+                <span className="landing-step-badge">{s.n}</span>
+                <StepIcon type={s.icon} />
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+              {i < STEPS.length - 1 && <span className="landing-step-arrow" aria-hidden="true">→</span>}
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="section faq">
-        <h2>All questions answered</h2>
-        <div style={{ maxWidth: 720, margin: "30px auto 0" }}>
+      <section className="landing-reviews">
+        <h2>See What People Are Saying 👀</h2>
+        <div className="landing-reviews-track">
+          {REVIEWS.map((r) => (
+            <article className="landing-review-card" key={r.handle}>
+              <div className="landing-review-head">
+                <img src={r.img} alt="" />
+                <div>
+                  <strong>{r.name}</strong>
+                  <span>{r.handle}</span>
+                </div>
+              </div>
+              <div className="landing-stars">★★★★★</div>
+              <p>{r.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-cta-band">
+        <Link to="/login" className="landing-btn landing-btn--blue landing-btn--lg">Start For Free</Link>
+        <TrustBadges variant="cta" />
+      </section>
+
+      <section className="landing-faq" id="faq">
+        <div className="landing-faq-head">
+          <span className="landing-faq-badge">FAQS</span>
+          <h2>
+            All Questions <span>Answered</span>
+          </h2>
+        </div>
+        <div className="landing-faq-list">
           {FAQS.map(([q, a]) => (
-            <details key={q}>
+            <details key={q} className="landing-faq-item">
               <summary>{q}</summary>
               <p>{a}</p>
             </details>
@@ -155,14 +595,49 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="brand" style={{ marginBottom: 8 }}>{brand.name}</div>
-        <div className="row-flex" style={{ justifyContent: "center", gap: 16, marginBottom: 8 }}>
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <Link to="/privacy">Privacy</Link>
+      <footer className="landing-footer">
+        <div className="landing-footer-grid">
+          <div className="landing-footer-brand">
+            <Logo size={28} />
+            <p>Automate your Instagram DMs and grow your business with 24/7 engagement.</p>
+            <div className="landing-footer-social">
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
+                <SocialIcon type="instagram" />
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">
+                <SocialIcon type="youtube" />
+              </a>
+            </div>
+            <p className="landing-footer-copy">© 2026 dmme. All rights reserved.</p>
+            <div className="landing-security-badge">
+              <span className="landing-security-icon" aria-hidden="true" />
+              SECURITY PARTNER
+            </div>
+          </div>
+          <div className="landing-footer-col">
+            <h4>Company</h4>
+            <Link to="/login">Pricing</Link>
+            <Link to="/login">Terms &amp; Conditions</Link>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/login">Contact Us</Link>
+            <Link to="/login">Refund Policy</Link>
+          </div>
+          <div className="landing-footer-col">
+            <h4>Compare</h4>
+            <Link to="/login">Vs Manychat</Link>
+            <Link to="/login">Vs LinkDM</Link>
+          </div>
+          <div className="landing-footer-col landing-footer-col--muted">
+            <h4>
+              Solutions <span className="landing-soon landing-soon--sm">Coming Soon</span>
+            </h4>
+            <span>Creators</span>
+            <span>Coaches &amp; Experts</span>
+            <span>Artists &amp; Labels</span>
+            <span>Agencies</span>
+          </div>
         </div>
-        <div>© {new Date().getFullYear()} {brand.name}. Not affiliated with Instagram or Meta.</div>
+        <div className="landing-watermark" aria-hidden="true">dmme</div>
       </footer>
     </div>
   );

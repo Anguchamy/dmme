@@ -98,6 +98,14 @@ function UsageMeter({ label, used, limit }) {
   );
 }
 
+function Hamburger() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
 export default function DashboardLayout() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -105,6 +113,13 @@ export default function DashboardLayout() {
   const [summary, setSummary] = useState(null);
   const [plan, setPlan] = useState(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = () => setNavOpen(false);
+
+  useEffect(() => {
+    document.body.style.overflow = navOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [navOpen]);
 
   useEffect(() => {
     api.get("/api/me").then(setMe).catch(() => {});
@@ -127,11 +142,20 @@ export default function DashboardLayout() {
 
   return (
     <div className="dash">
-      <aside className="sidebar">
+      <div className="mobile-topbar">
+        <button className="hamburger" onClick={() => setNavOpen(true)} aria-label="Open menu">
+          <Hamburger />
+        </button>
+        <LogoMark size={30} />
+      </div>
+
+      {navOpen && <div className="sidebar-overlay" onClick={closeNav} />}
+
+      <aside className={`sidebar${navOpen ? " open" : ""}`}>
         <AccountSwitcher />
 
         <div className="side-section-label">Workspace</div>
-        <nav className="side-nav">
+        <nav className="side-nav" onClick={closeNav}>
           <NavLink to="/app" end><IconHome /><span>Home</span></NavLink>
           <NavLink to="/app/automations"><IconBolt /><span>Automations</span></NavLink>
           <NavLink to="/app/leads"><IconUsers /><span>Contacts</span></NavLink>
