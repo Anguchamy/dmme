@@ -73,7 +73,9 @@ public class BillingService {
             JSONObject req = new JSONObject();
             req.put("amount", plan.getPriceMinor());
             req.put("currency", plan.getCurrency());
-            req.put("receipt", "rf_" + userId + "_" + System.currentTimeMillis());
+            String receipt = "rcpt_" + userId.toString().replace("-", "").substring(0, 12)
+                    + "_" + Long.toString(System.currentTimeMillis(), 36);
+            req.put("receipt", receipt.length() > 40 ? receipt.substring(0, 40) : receipt);
             req.put("notes", new JSONObject().put("planCode", planCode).put("userId", userId.toString()));
 
             Order order = client().orders.create(req);
