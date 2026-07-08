@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { useActiveAccount } from "../context/ActiveAccountContext";
 import UpgradeBanner from "../components/UpgradeBanner";
 
 function relTime(iso) {
@@ -60,6 +61,7 @@ export default function Automations() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const navigate = useNavigate();
+  const { activeAccountId, activeAccount } = useActiveAccount();
 
   const load = () =>
     api.get("/api/automations").then((d) => {
@@ -70,6 +72,10 @@ export default function Automations() {
   useEffect(() => {
     load().catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeAccountId]);
 
   async function toggle(a) {
     const next = a.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
@@ -83,8 +89,11 @@ export default function Automations() {
     load();
   }
 
-  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
-  const pageItems = items.slice((page - 1) * perPage, page * perPage);
+  const scoped = activeAccountId
+    ? items.filter((a) => a.igAccountId === activeAccountId)
+    : items;
+  const totalPages = Math.max(1, Math.ceil(scoped.length / perPage));
+  const pageItems = scoped.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div>
@@ -93,14 +102,18 @@ export default function Automations() {
       <div className="page-head">
         <div>
           <h1>Automations</h1>
-          <p className="page-sub">Turn comments and DMs into automated conversations.</p>
+          <p className="page-sub">
+            {activeAccount
+              ? <>Showing automations for <strong>@{activeAccount.igUsername || activeAccount.igUserId}</strong>.</>
+              : "Turn comments and DMs into automated conversations."}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate("/app/automations/new")}>+ Create</button>
       </div>
 
       {loading ? (
         <p>Loading…</p>
-      ) : items.length === 0 ? (
+      ) : scoped.length === 0 ? (
         <div className="empty-card">
           <div className="empty-icon"><ImageGlyph /></div>
           <h3>No automations yet</h3>

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useActiveAccount } from "../context/ActiveAccountContext";
 import { api } from "../lib/api";
 import { LogoMark } from "../components/Logo";
 import {
@@ -9,6 +10,75 @@ import {
 } from "../components/DashIcons";
 
 const SUPPORT_EMAIL = "support@dmme.app";
+
+function AccountSwitcher() {
+  const { accounts, activeAccount, setActiveAccountId } = useActiveAccount();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const h = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const email = user?.email || "";
+  const handle = activeAccount
+    ? `@${activeAccount.igUsername || activeAccount.igUserId}`
+    : "Connect Instagram";
+
+  return (
+    <div className="acct-switch" ref={ref}>
+      <button className="acct-trigger" onClick={() => setOpen((v) => !v)}>
+        <div className="side-avatar"><LogoMark size={34} /></div>
+        <div className="side-profile-text">
+          <div className="side-handle">{handle}</div>
+          {email && <div className="side-email">{email}</div>}
+        </div>
+        <svg className={`acct-caret${open ? " open" : ""}`} width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="acct-menu">
+          <div className="acct-menu-label">Your accounts</div>
+          {accounts.length === 0 && (
+            <div className="acct-empty">No Instagram account connected yet.</div>
+          )}
+          {accounts.map((a) => {
+            const active = a.id === activeAccount?.id;
+            return (
+              <button
+                key={a.id}
+                className={`acct-item${active ? " active" : ""}`}
+                onClick={() => { setActiveAccountId(a.id); setOpen(false); }}
+              >
+                <span className="acct-item-dot" />
+                <span className="acct-item-name">@{a.igUsername || a.igUserId}</span>
+                {active && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+          <button
+            className="acct-connect"
+            onClick={() => { setOpen(false); navigate("/app/settings"); }}
+          >
+            + Connect another account
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function UsageMeter({ label, used, limit }) {
   const unlimited = limit == null;
@@ -33,15 +103,11 @@ export default function DashboardLayout() {
   const [me, setMe] = useState(null);
   const [summary, setSummary] = useState(null);
   const [plan, setPlan] = useState(null);
-  const [handle, setHandle] = useState("");
   const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     api.get("/api/me").then(setMe).catch(() => {});
     api.get("/api/analytics/summary").then(setSummary).catch(() => {});
-    api.get("/api/instagram/accounts")
-      .then((d) => Array.isArray(d) && d[0]?.igUsername && setHandle(d[0].igUsername))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -57,19 +123,11 @@ export default function DashboardLayout() {
   }
 
   const isFree = !me?.planCode || me.planCode === "FREE";
-  const email = me?.email || "";
-  const displayHandle = handle ? `@${handle}` : (email ? email.split("@")[0] : "your account");
 
   return (
     <div className="dash">
       <aside className="sidebar">
-        <div className="side-profile">
-          <div className="side-avatar"><LogoMark size={34} /></div>
-          <div className="side-profile-text">
-            <div className="side-handle">{displayHandle}</div>
-            {email && <div className="side-email">{email}</div>}
-          </div>
-        </div>
+        <AccountSwitcher />
 
         <div className="side-section-label">Workspace</div>
         <nav className="side-nav">

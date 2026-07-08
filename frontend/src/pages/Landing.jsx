@@ -154,6 +154,11 @@ export default function Landing() {
 
       <footer className="footer">
         <div className="brand" style={{ marginBottom: 8 }}>{brand.name}</div>
+        <div className="row-flex" style={{ justifyContent: "center", gap: 16, marginBottom: 8 }}>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <Link to="/privacy">Privacy</Link>
+        </div>
         <div>© {new Date().getFullYear()} {brand.name}. Not affiliated with Instagram or Meta.</div>
       </footer>
     </div>

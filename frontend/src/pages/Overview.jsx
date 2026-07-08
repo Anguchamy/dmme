@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useActiveAccount } from "../context/ActiveAccountContext";
 import { IconComment, IconReply, IconFunnel, IconGrowth, IconCheck } from "../components/DashIcons";
 import UpgradeBanner from "../components/UpgradeBanner";
 
@@ -25,23 +26,27 @@ const QUICK_ACTIONS = [
 export default function Overview() {
   const [summary, setSummary] = useState(null);
   const [me, setMe] = useState(null);
-  const [accounts, setAccounts] = useState([]);
   const [automationCount, setAutomationCount] = useState(0);
-  const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { accounts, activeAccountId, loading: accountsLoading } = useActiveAccount();
 
   useEffect(() => {
     api.get("/api/analytics/summary").then(setSummary).catch(() => {});
     api.get("/api/me").then(setMe).catch(() => {});
-    api.get("/api/automations").then((d) => setAutomationCount(Array.isArray(d) ? d.length : 0)).catch(() => {});
-    api.get("/api/instagram/accounts")
-      .then((d) => setAccounts(Array.isArray(d) ? d : []))
-      .catch(() => {})
-      .finally(() => setLoaded(true));
   }, []);
 
-  const notConnected = loaded && accounts.length === 0;
+  useEffect(() => {
+    api.get("/api/automations")
+      .then((d) => {
+        const list = Array.isArray(d) ? d : [];
+        const scoped = activeAccountId ? list.filter((a) => a.igAccountId === activeAccountId) : list;
+        setAutomationCount(scoped.length);
+      })
+      .catch(() => {});
+  }, [activeAccountId]);
+
+  const notConnected = !accountsLoading && accounts.length === 0;
   const displayName =
     me?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name ||
     me?.email || user?.email || "there";

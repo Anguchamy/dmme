@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { ActiveAccountProvider } from "./context/ActiveAccountContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import Privacy from "./pages/Privacy";
 import DashboardLayout from "./pages/DashboardLayout";
 import Overview from "./pages/Overview";
 import Automations from "./pages/Automations";
@@ -22,6 +24,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/instagram/callback"
         element={
@@ -34,7 +37,9 @@ export default function App() {
         path="/app"
         element={
           <Protected>
-            <DashboardLayout />
+            <ActiveAccountProvider>
+              <DashboardLayout />
+            </ActiveAccountProvider>
           </Protected>
         }
       >

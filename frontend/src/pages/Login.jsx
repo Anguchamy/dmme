@@ -5,11 +5,48 @@ import { useAuth } from "../context/AuthContext";
 import { Logo } from "../components/Logo";
 
 const CREATORS = [
-  { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", grad: "linear-gradient(160deg,#f6d365,#fd7e6d)" },
-  { handle: "@ezsnippet", followers: "3.3M+ Followers", tag: "Tech", grad: "linear-gradient(160deg,#a18cd1,#7b5bd6)" },
-  { handle: "@fit.saswati", followers: "35K+ Followers", tag: "Fitness", grad: "linear-gradient(160deg,#f8b500,#f8615a)" },
-  { handle: "@elementec", followers: "1.2M+ Followers", tag: "Travel", grad: "linear-gradient(160deg,#43cea2,#185a9d)" },
+  { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", img: "https://picsum.photos/seed/dmme-lifestyle/300/420" },
+  { handle: "@ezsnippet", followers: "3.3M+ Followers", tag: "Tech", img: "https://picsum.photos/seed/dmme-tech/300/420" },
+  { handle: "@fit.saswati", followers: "35K+ Followers", tag: "Fitness", img: "https://picsum.photos/seed/dmme-fitness/300/420" },
+  { handle: "@elementec", followers: "1.2M+ Followers", tag: "Travel", img: "https://picsum.photos/seed/dmme-travel/300/420" },
+  { handle: "@studio.mira", followers: "540K+ Followers", tag: "Design", img: "https://picsum.photos/seed/dmme-design/300/420" },
+  { handle: "@thefoodloop", followers: "820K+ Followers", tag: "Food", img: "https://picsum.photos/seed/dmme-food/300/420" },
+  { handle: "@aria.beats", followers: "2.1M+ Followers", tag: "Music", img: "https://picsum.photos/seed/dmme-music/300/420" },
+  { handle: "@wildframe", followers: "410K+ Followers", tag: "Photography", img: "https://picsum.photos/seed/dmme-photo/300/420" },
+  { handle: "@glowbyrhea", followers: "670K+ Followers", tag: "Beauty", img: "https://picsum.photos/seed/dmme-beauty/300/420" },
+  { handle: "@coach.dev", followers: "95K+ Followers", tag: "Coaching", img: "https://picsum.photos/seed/dmme-coach/300/420" },
+  { handle: "@urban.threads", followers: "1.4M+ Followers", tag: "Fashion", img: "https://picsum.photos/seed/dmme-fashion/300/420" },
+  { handle: "@ledger.io", followers: "230K+ Followers", tag: "Finance", img: "https://picsum.photos/seed/dmme-finance/300/420" },
 ];
+
+function CreatorCard({ c }) {
+  return (
+    <div className="creator-card">
+      <img src={c.img} alt="" loading="lazy" />
+      <div className="creator-meta">
+        <span className="cat-chip">{c.tag}</span>
+        <div className="creator-handle">{c.handle}</div>
+        <div className="creator-followers">
+          <IgIcon /> {c.followers}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarqueeRow({ items, reverse }) {
+  // Duplicate the items so the track can loop seamlessly.
+  const loop = [...items, ...items];
+  return (
+    <div className={`marquee-row${reverse ? " reverse" : ""}`}>
+      <div className="marquee-track">
+        {loop.map((c, i) => (
+          <CreatorCard key={`${c.handle}-${i}`} c={c} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function GoogleIcon() {
   return (
@@ -153,18 +190,10 @@ export default function Login() {
         <h2 className="showcase-head">
           Join <span>25k+</span> Creators
         </h2>
-        <div className="cards-row">
-          {CREATORS.map((c) => (
-            <div className="creator-card" key={c.handle} style={{ background: c.grad }}>
-              <div className="creator-meta">
-                <span className="cat-chip">{c.tag}</span>
-                <div className="creator-handle">{c.handle}</div>
-                <div className="creator-followers">
-                  <IgIcon /> {c.followers}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="marquee-stack">
+          <MarqueeRow items={CREATORS.slice(0, 6)} />
+          <MarqueeRow items={CREATORS.slice(6, 12)} reverse />
+          <MarqueeRow items={[...CREATORS.slice(3, 9)]} />
         </div>
       </div>
     </div>

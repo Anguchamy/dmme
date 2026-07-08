@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
+import { useActiveAccount } from "../context/ActiveAccountContext";
 import PostPicker from "../components/PostPicker";
 
 const emptyStep = () => ({
@@ -74,8 +75,7 @@ export default function AutomationBuilder() {
   const { id } = useParams();
   const editing = Boolean(id);
   const navigate = useNavigate();
-
-  const [accounts, setAccounts] = useState([]);
+  const { accounts, activeAccountId } = useActiveAccount();
   const [form, setForm] = useState({
     name: "",
     type: "COMMENT",
@@ -95,7 +95,6 @@ export default function AutomationBuilder() {
   const [selectedMedia, setSelectedMedia] = useState(null); // { id, thumbnail, caption }
 
   useEffect(() => {
-    api.get("/api/instagram/accounts").then((d) => setAccounts(Array.isArray(d) ? d : [])).catch(() => {});
     if (editing) {
       api.get(`/api/automations/${id}`).then((a) =>
         setForm({
@@ -106,6 +105,13 @@ export default function AutomationBuilder() {
       );
     }
   }, [id, editing]);
+
+  // For a new automation, default the account to the one selected in the sidebar.
+  useEffect(() => {
+    if (!editing && activeAccountId) {
+      setForm((f) => (f.igAccountId ? f : { ...f, igAccountId: activeAccountId }));
+    }
+  }, [editing, activeAccountId]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
