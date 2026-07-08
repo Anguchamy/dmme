@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "../components/Logo";
+import Backdrop3D from "../components/Backdrop3D";
 
 const CREATORS = [
   { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", img: "https://picsum.photos/seed/dmme-lifestyle/300/420" },
@@ -187,6 +188,7 @@ export default function Login() {
       </div>
 
       <div className="login-showcase">
+        <Backdrop3D />
         <h2 className="showcase-head">
           Join <span>25k+</span> Creators
         </h2>

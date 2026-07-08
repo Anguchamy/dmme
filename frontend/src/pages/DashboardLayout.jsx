@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useActiveAccount } from "../context/ActiveAccountContext";
 import { api } from "../lib/api";
 import { LogoMark } from "../components/Logo";
+import Backdrop3D from "../components/Backdrop3D";
 import {
   IconHome, IconBolt, IconUsers, IconCard, IconGear,
   IconLifebuoy, IconLogout, IconRocket, IconClose, IconMail,
@@ -158,6 +159,7 @@ export default function DashboardLayout() {
       </aside>
 
       <main className="main">
+        <Backdrop3D variant="subtle" />
         <Outlet />
       </main>
 

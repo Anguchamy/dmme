@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { SectionLoader } from "../components/Loader";
+import Tilt from "../components/Tilt";
 
 export default function Billing() {
   const [plans, setPlans] = useState([]);
   const [me, setMe] = useState(null);
   const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = () => {
-    api.get("/api/plans").then(setPlans).catch(() => {});
-    api.get("/api/me").then(setMe).catch(() => {});
+    setLoading(true);
+    Promise.all([
+      api.get("/api/plans").then(setPlans).catch(() => {}),
+      api.get("/api/me").then(setMe).catch(() => {}),
+    ]).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -54,12 +60,15 @@ export default function Billing() {
       </div>
       {msg && <div className="banner banner-ok">{msg}</div>}
 
+      {loading ? (
+        <SectionLoader label="Loading plans…" />
+      ) : (
       <div className="pricing" style={{ marginTop: 8 }}>
         {plans.map((p) => {
           const current = me?.planCode === p.code;
           const purchasable = p.priceMinor > 0 && !current;
           return (
-            <div className={`plan ${p.code === "PRO" ? "featured" : ""}`} key={p.code}>
+            <Tilt className={`plan ${p.code === "PRO" ? "featured" : ""}`} key={p.code} max={6}>
               <h3>{p.name}</h3>
               <div className="price">{price(p)}</div>
               <ul>{(p.features || []).map((f) => <li key={f}>{f}</li>)}</ul>
@@ -74,10 +83,11 @@ export default function Billing() {
                   {p.code === "AGENCY" ? "Contact sales" : "—"}
                 </button>
               )}
-            </div>
+            </Tilt>
           );
         })}
       </div>
+      )}
     </div>
   );
 }

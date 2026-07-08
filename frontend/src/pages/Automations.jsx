@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useActiveAccount } from "../context/ActiveAccountContext";
 import UpgradeBanner from "../components/UpgradeBanner";
+import { TableSkeleton } from "../components/Loader";
 
 function relTime(iso) {
   if (!iso) return "—";
@@ -112,7 +113,7 @@ export default function Automations() {
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <TableSkeleton rows={5} cols={4} />
       ) : scoped.length === 0 ? (
         <div className="empty-card">
           <div className="empty-icon"><ImageGlyph /></div>

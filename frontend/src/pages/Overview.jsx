@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useActiveAccount } from "../context/ActiveAccountContext";
 import { IconComment, IconReply, IconFunnel, IconGrowth, IconCheck } from "../components/DashIcons";
 import UpgradeBanner from "../components/UpgradeBanner";
+import Tilt from "../components/Tilt";
 
 function LockIcon() {
   return (
@@ -94,12 +95,12 @@ export default function Overview() {
               </div>
               <div className="qa-grid">
                 {QUICK_ACTIONS.map(({ key, title, desc, Icon, badge, badgeClass }) => (
-                  <button className="qa-card" key={key} onClick={() => navigate("/app/automations/new")}>
+                  <Tilt className="qa-card" key={key} role="button" tabIndex={0} onClick={() => navigate("/app/automations/new")}>
                     <span className="qa-icon"><Icon /></span>
                     <span className={`qa-badge ${badgeClass}`}>{badge}</span>
                     <span className="qa-title">{title}</span>
                     <span className="qa-desc">{desc}</span>
-                  </button>
+                  </Tilt>
                 ))}
               </div>
             </div>

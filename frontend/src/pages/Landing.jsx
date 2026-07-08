@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { brand } from "../config/brand";
 import { api } from "../lib/api";
+import Backdrop3D from "../components/Backdrop3D";
+import Tilt from "../components/Tilt";
 
 const FEATURES = [
   ["Comment automation", "Reply to comments and slide into the DMs with your link instantly."],
@@ -57,6 +59,7 @@ export default function Landing() {
       </nav>
 
       <header className="hero">
+        <Backdrop3D />
         <h1>{brand.tagline}</h1>
         <p>{brand.subtitle}</p>
         <Link to="/login" className="btn btn-primary">Start for free</Link>
@@ -79,10 +82,10 @@ export default function Landing() {
         <p className="lead">Unlock the full power of Instagram automation.</p>
         <div className="grid">
           {FEATURES.map(([t, d]) => (
-            <div className="card" key={t}>
+            <Tilt className="card" key={t}>
               <h3>{t}</h3>
               <p>{d}</p>
-            </div>
+            </Tilt>
           ))}
         </div>
       </section>
@@ -92,11 +95,11 @@ export default function Landing() {
         <p className="lead">Unlimited possibilities.</p>
         <div className="steps">
           {STEPS.map(([n, t, d]) => (
-            <div className="step card" key={n}>
+            <Tilt className="step card" key={n} max={7}>
               <div className="n">{n}</div>
               <h3>{t}</h3>
               <p>{d}</p>
-            </div>
+            </Tilt>
           ))}
         </div>
       </section>
@@ -106,7 +109,7 @@ export default function Landing() {
         <p className="lead">Start free, upgrade when you're ready.</p>
         <div className="pricing">
           {plans.map((p) => (
-            <div className={`plan ${p.code === "PRO" ? "featured" : ""}`} key={p.code}>
+            <Tilt className={`plan ${p.code === "PRO" ? "featured" : ""}`} key={p.code} max={6}>
               <h3>{p.name}</h3>
               <div className="price">
                 {price(p)}
@@ -120,7 +123,7 @@ export default function Landing() {
               <Link to="/login" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
                 {p.code === "AGENCY" ? "Contact us" : "Get started"}
               </Link>
-            </div>
+            </Tilt>
           ))}
         </div>
       </section>
@@ -130,12 +133,12 @@ export default function Landing() {
         <p className="lead">Loved by creators and small businesses.</p>
         <div className="reviews">
           {REVIEWS.map(([who, role, text]) => (
-            <div className="review card" key={who}>
+            <Tilt className="review card" key={who} max={7}>
               <div className="stars">★★★★★</div>
               <div className="who">{who}</div>
               <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 10 }}>{role}</div>
               <p>{text}</p>
-            </div>
+            </Tilt>
           ))}
         </div>
       </section>

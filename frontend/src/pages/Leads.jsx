@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { supabase } from "../lib/supabase";
 import UpgradeBanner from "../components/UpgradeBanner";
+import { TableSkeleton } from "../components/Loader";
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
@@ -41,7 +42,7 @@ export default function Leads() {
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <TableSkeleton rows={5} cols={5} />
       ) : leads.length === 0 ? (
         <div className="empty-card">
           <div className="empty-icon">

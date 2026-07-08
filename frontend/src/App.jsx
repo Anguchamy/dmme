@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { ActiveAccountProvider } from "./context/ActiveAccountContext";
+import { FullPageLoader } from "./components/Loader";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Privacy from "./pages/Privacy";
@@ -15,7 +16,7 @@ import InstagramCallback from "./pages/InstagramCallback";
 
 function Protected({ children }) {
   const { session, loading } = useAuth();
-  if (loading) return <div className="loading">Loading…</div>;
+  if (loading) return <FullPageLoader label="Signing you in…" />;
   return session ? children : <Navigate to="/login" replace />;
 }
 

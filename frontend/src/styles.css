@@ -22,6 +22,127 @@ a { color: inherit; text-decoration: none; }
 
 .loading { padding: 48px; text-align: center; color: var(--muted); }
 
+/* ---------- Loaders ---------- */
+@keyframes loader-spin { to { transform: rotate(360deg); } }
+@keyframes loader-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.9); opacity: .82; } }
+@keyframes skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2.5px solid rgba(124, 58, 237, 0.18);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent-2);
+  animation: loader-spin 0.7s linear infinite;
+}
+
+.full-loader {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: radial-gradient(120% 120% at 50% 0%, #faf8ff 0%, #ffffff 60%);
+}
+.full-loader-mark { position: relative; width: 76px; height: 76px; display: grid; place-items: center; }
+.loader-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--accent), var(--accent-2), #d8b4fe, var(--accent));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: loader-spin 1s linear infinite;
+}
+.loader-logo { animation: loader-pulse 1.6s ease-in-out infinite; display: grid; place-items: center; }
+.full-loader-text { font-weight: 700; color: var(--text); }
+.full-loader-sub { font-size: 13px; color: var(--muted); margin-top: -8px; }
+
+.section-loader {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 48px 16px; color: var(--muted); font-weight: 500;
+}
+
+.skeleton {
+  display: inline-block;
+  background: linear-gradient(90deg, #eee 25%, #f5f5fa 37%, #eee 63%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.table-skeleton { padding: 8px; }
+.tsk-row { display: grid; grid-template-columns: 56px 2fr 1fr 1fr; gap: 16px; align-items: center; padding: 16px 12px; border-bottom: 1px solid var(--border); }
+.tsk-row:last-child { border-bottom: none; }
+
+/* ---------- 3D polish ---------- */
+.tilt {
+  --rx: 0deg; --ry: 0deg;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1), box-shadow 0.35s ease;
+  will-change: transform;
+}
+.tilt.tilt-active {
+  transition: transform 0.08s ease-out, box-shadow 0.2s ease;
+  box-shadow: 0 26px 50px -22px rgba(76, 29, 149, 0.45);
+}
+
+/* Global depth + hover-lift for cards across the whole app */
+.card, .plan, .step, .review, .qa-card, .metric, .stat, .getstarted, .table-card, .empty-card {
+  transition: transform 0.28s cubic-bezier(.2,.8,.2,1), box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.card:hover, .step:hover, .review:hover, .stat:hover, .metric:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 44px -26px rgba(76, 29, 149, 0.38);
+}
+.plan:hover { box-shadow: 0 28px 56px -28px rgba(76, 29, 149, 0.45); }
+
+/* Animated 3D-style gradient orbs */
+.bg3d {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  z-index: 0; border-radius: inherit;
+}
+.bg3d .orb {
+  position: absolute; border-radius: 50%; filter: blur(46px); opacity: 0.55;
+  will-change: transform;
+}
+.bg3d .orb-1 {
+  width: 320px; height: 320px; top: -60px; left: -40px;
+  background: radial-gradient(circle at 30% 30%, #a855f7, #7c3aed 55%, transparent 72%);
+  animation: orb-float-1 16s ease-in-out infinite;
+}
+.bg3d .orb-2 {
+  width: 260px; height: 260px; bottom: -50px; right: -30px;
+  background: radial-gradient(circle at 40% 40%, #c084fc, #9333ea 55%, transparent 72%);
+  animation: orb-float-2 20s ease-in-out infinite;
+}
+.bg3d .orb-3 {
+  width: 200px; height: 200px; top: 40%; left: 55%;
+  background: radial-gradient(circle at 40% 40%, #e9d5ff, #a855f7 60%, transparent 74%);
+  opacity: 0.4; animation: orb-float-3 24s ease-in-out infinite;
+}
+.bg3d .orb-grid {
+  position: absolute; inset: 0; opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(124,58,237,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask: radial-gradient(120% 80% at 50% 20%, #000 30%, transparent 75%);
+          mask: radial-gradient(120% 80% at 50% 20%, #000 30%, transparent 75%);
+}
+.bg3d.subtle .orb { opacity: 0.28; }
+
+@keyframes orb-float-1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.08); } }
+@keyframes orb-float-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-36px,-28px) scale(1.1); } }
+@keyframes orb-float-3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,26px) scale(0.92); } }
+
+/* Ensure real content sits above the backdrop */
+.hero > *, .login-showcase > *, .main > * { position: relative; z-index: 1; }
+
+/* Respect reduced motion & touch devices */
+@media (prefers-reduced-motion: reduce) {
+  .bg3d .orb, .loader-ring, .loader-logo, .spinner, .skeleton { animation: none !important; }
+  .tilt { transform: none !important; }
+}
+@media (hover: none), (pointer: coarse) {
+  .tilt { transform: none !important; }
+  .tilt.tilt-active { box-shadow: none; }
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -94,7 +215,7 @@ a { color: inherit; text-decoration: none; }
 }
 .brand { font-weight: 800; font-size: 22px; color: var(--accent); }
 
-.hero { text-align: center; padding: 80px 6vw 40px; background: var(--bg-soft); }
+.hero { text-align: center; padding: 80px 6vw 40px; background: var(--bg-soft); position: relative; overflow: hidden; }
 .hero h1 { font-size: 52px; line-height: 1.05; margin: 0 0 18px; letter-spacing: -1px; }
 .hero p { font-size: 20px; color: var(--muted); max-width: 640px; margin: 0 auto 28px; }
 .hero .badges { margin-top: 18px; color: var(--muted); font-size: 14px; }
@@ -198,7 +319,7 @@ a { color: inherit; text-decoration: none; }
 .login-showcase {
   background: linear-gradient(180deg, #eef2ff 0%, #f6f0ff 100%);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 48px 24px; overflow: hidden;
+  padding: 48px 24px; overflow: hidden; position: relative;
 }
 .showcase-head { font-size: 34px; font-weight: 800; margin: 0 0 36px; letter-spacing: -0.5px; }
 .showcase-head span { color: var(--accent); }
@@ -250,7 +371,7 @@ a { color: inherit; text-decoration: none; }
 .sidebar .brand { color: #fff; padding: 0 8px 24px; }
 .sidebar a { display: block; padding: 11px 12px; border-radius: 10px; color: #b5b0c4; margin-bottom: 4px; }
 .sidebar a.active, .sidebar a:hover { background: #241f36; color: #fff; }
-.main { padding: 32px 40px; background: var(--bg-soft); }
+.main { padding: 32px 40px; background: var(--bg-soft); position: relative; }
 .main h1 { margin-top: 0; }
 
 /* Overview + soft Instagram gate */
