@@ -22,6 +22,8 @@ spring:
 
 server:
   port: ${PORT:8080}
+  error:
+    include-message: always
 
 app:
   cors:

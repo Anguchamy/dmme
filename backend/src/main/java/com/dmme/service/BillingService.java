@@ -62,6 +62,13 @@ public class BillingService {
         if (plan.getPriceMinor() <= 0) {
             throw new ResponseStatusException(BAD_REQUEST, "Plan is not purchasable online");
         }
+        String keyId = props.getRazorpay().getKeyId();
+        String keySecret = props.getRazorpay().getKeySecret();
+        if (keyId == null || keyId.isBlank() || keySecret == null || keySecret.isBlank()) {
+            log.error("Razorpay keys are not configured (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)");
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Payments are not configured yet. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.");
+        }
         try {
             JSONObject req = new JSONObject();
             req.put("amount", plan.getPriceMinor());
