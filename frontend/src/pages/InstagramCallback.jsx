@@ -8,7 +8,7 @@ function ChatBoltIcon() {
     <svg width="34" height="34" viewBox="0 0 40 40" fill="none" aria-hidden="true">
       <rect x="7" y="9" width="26" height="17" rx="8" fill="#fff" />
       <path d="M13 24 L13 31 L20.5 25 Z" fill="#fff" />
-      <path d="M21 12 L16 18 L19.5 18 L18.5 23 L24 16 L20.5 16 Z" fill="#a855f7" />
+      <path d="M21 12 L16 18 L19.5 18 L18.5 23 L24 16 L20.5 16 Z" fill="#2b2bff" />
     </svg>
   );
 }

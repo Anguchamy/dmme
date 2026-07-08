@@ -4,7 +4,7 @@ export const brand = {
   tagline: "Turn every Instagram comment into a conversation.",
   subtitle:
     "Auto-reply to comments, stories, and DMs with keyword-triggered flows. Capture leads, grow followers, and drive sales on autopilot.",
-  accent: "#6d28d9",
+  accent: "#2b2bff",
   domain: "dmme.co.in",
   contactEmail: "contact@dmme.co.in",
 };

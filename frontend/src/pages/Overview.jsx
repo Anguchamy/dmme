@@ -12,7 +12,7 @@ function LockIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="10" width="16" height="10" rx="2.5" fill="#fff" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="15" r="1.6" fill="#7c3aed" />
+      <circle cx="12" cy="15" r="1.6" fill="#2b2bff" />
     </svg>
   );
 }

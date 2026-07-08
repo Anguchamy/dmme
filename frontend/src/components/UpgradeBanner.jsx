@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { IconRocket } from "./DashIcons";
 
-/** Purple "Unlock Pro" banner shown to free-plan users. Renders nothing for paid plans. */
+/** Blue "Unlock Pro" banner shown to free-plan users. Renders nothing for paid plans. */
 export default function UpgradeBanner() {
   const [isFree, setIsFree] = useState(false);
   const navigate = useNavigate();

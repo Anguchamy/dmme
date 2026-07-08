@@ -2,7 +2,7 @@ import { useId } from "react";
 
 /**
  * dmme logo mark: a DM speech bubble with a lightning bolt (automation),
- * on a rounded purple gradient tile.
+ * on a rounded blue gradient tile.
  */
 export function LogoMark({ size = 32 }) {
   const id = useId();
@@ -18,8 +18,8 @@ export function LogoMark({ size = 32 }) {
     >
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7c3aed" />
-          <stop offset="1" stopColor="#a855f7" />
+          <stop stopColor="#2b2bff" />
+          <stop offset="1" stopColor="#4f46e5" />
         </linearGradient>
       </defs>
       <rect width="40" height="40" rx="11" fill={`url(#${id})`} />

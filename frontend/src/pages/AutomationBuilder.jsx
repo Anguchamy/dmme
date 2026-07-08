@@ -28,7 +28,7 @@ function IgGlyph() {
 }
 function ChatGlyph() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2b2bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 5h16v11H9l-4 3v-3H4z" />
     </svg>
   );

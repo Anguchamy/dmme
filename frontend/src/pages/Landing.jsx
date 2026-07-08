@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo, LogoMark } from "../components/Logo";
+import { api } from "../lib/api";
 
 const CREATORS = [
   { handle: "@elementec", followers: "1.2M+ Followers", tag: "Travel", img: "https://picsum.photos/seed/dmme-travel/300/420" },
@@ -447,6 +449,16 @@ function ChatIllustration({ variant = "convert" }) {
   );
 }
 
+function formatPlanPrice(plan) {
+  return plan.priceMinor === 0
+    ? "Free"
+    : `₹${(plan.priceMinor / 100).toLocaleString("en-IN")}/mo`;
+}
+
+function planCtaLabel(code) {
+  return code === "AGENCY" ? "Contact us" : "Get started";
+}
+
 function SplitSection({ reverse, title, text, variant }) {
   return (
     <section className={`landing-split${reverse ? " landing-split--reverse" : ""}`}>
@@ -464,6 +476,12 @@ function SplitSection({ reverse, title, text, variant }) {
 }
 
 export default function Landing() {
+  const [plans, setPlans] = useState([]);
+
+  useEffect(() => {
+    api.get("/api/plans").then(setPlans).catch(() => {});
+  }, []);
+
   return (
     <div className="landing">
       <nav className="landing-nav">
@@ -471,7 +489,7 @@ export default function Landing() {
           <Logo size={28} />
         </Link>
         <div className="landing-nav-links">
-          <Link to="/login">Pricing</Link>
+          <a href="#pricing">Pricing</a>
           <a href="#faq">Help Centre</a>
         </div>
         <div className="landing-nav-actions">
@@ -577,6 +595,40 @@ export default function Landing() {
         </div>
       </section>
 
+      {plans.length > 0 && (
+        <section className="landing-pricing" id="pricing">
+          <p className="landing-overline landing-overline--blue">PRICING</p>
+          <h2>Simple, transparent pricing</h2>
+          <p className="landing-pricing-sub">Start free, upgrade when you&apos;re ready.</p>
+          <div className="landing-pricing-grid">
+            {plans.map((plan) => {
+              const featured = plan.code === "PRO";
+              return (
+                <article
+                  className={`landing-pricing-card${featured ? " landing-pricing-card--featured" : ""}`}
+                  key={plan.code}
+                >
+                  {featured && <span className="landing-pricing-badge">Most popular</span>}
+                  <h3>{plan.name}</h3>
+                  <div className="landing-pricing-price">{formatPlanPrice(plan)}</div>
+                  <ul className="landing-pricing-features">
+                    {(plan.features || []).map((feature) => (
+                      <li key={feature}>
+                        <CheckIcon />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/login" className="landing-btn landing-btn--blue">
+                    {planCtaLabel(plan.code)}
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="landing-reviews">
         <h2>See What People Are Saying 👀</h2>
         <div className="landing-reviews-track">
@@ -639,7 +691,7 @@ export default function Landing() {
           </div>
           <div className="landing-footer-col">
             <h4>Company</h4>
-            <Link to="/login">Pricing</Link>
+            <a href="#pricing">Pricing</a>
             <Link to="/terms">Terms &amp; Conditions</Link>
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/contact">Contact Us</Link>
