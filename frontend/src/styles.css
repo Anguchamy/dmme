@@ -1012,8 +1012,10 @@ th { background: #fafafe; color: var(--muted); font-weight: 600; }
   font-weight: 700; font-size: 13px; margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }
+.landing-brand-label { display: inline-flex; align-items: center; gap: 4px; color: #7c3aed; font-weight: 700; font-size: 14px; white-space: nowrap; }
 .landing-meta-x { color: #9ca3af; font-weight: 400; }
-.landing-meta-label { display: inline-flex; align-items: center; gap: 4px; color: #1877f2; }
+.landing-meta-label { display: inline-flex; align-items: center; gap: 4px; color: #1877f2; white-space: nowrap; }
+.landing-meta-logo { display: block; flex-shrink: 0; }
 .landing-hero-copy h1 {
   font-size: clamp(2rem, 4.5vw + 0.5rem, 3.5rem);
   line-height: 1.08; margin: 0 0 18px; letter-spacing: -0.03em; font-weight: 800;
