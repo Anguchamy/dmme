@@ -1141,13 +1141,10 @@ th { background: #fafafe; color: var(--muted); font-weight: 600; }
 .landing-phone-grid {
   position: absolute; inset: 0;
   background:
-    linear-gradient(45deg, #e8e8f0 25%, transparent 25%),
-    linear-gradient(-45deg, #e8e8f0 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e8e8f0 75%),
-    linear-gradient(-45deg, transparent 75%, #e8e8f0 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-  opacity: 0.5;
+    radial-gradient(circle at 22% 24%, rgba(43, 43, 255, 0.15), transparent 42%),
+    radial-gradient(circle at 78% 72%, rgba(99, 102, 241, 0.2), transparent 44%),
+    linear-gradient(180deg, #f8f9ff 0%, #eef2ff 58%, #e7ecff 100%);
+  opacity: 1;
 }
 .landing-phone-comment {
   position: absolute; top: 18%; left: -8%; right: 10%;
