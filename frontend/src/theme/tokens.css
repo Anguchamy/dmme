@@ -1,0 +1,15 @@
+:root {
+  /* Central brand color tokens (edit these in one place). */
+  --theme-primary: #2b2bff;
+  --theme-primary-dark: #4f46e5;
+  --theme-primary-hover: #1f1fe0;
+  --theme-primary-indigo: #6366f1;
+  --theme-primary-sky: #93c5fd;
+  --theme-primary-light: #e0e7ff;
+  --theme-primary-soft: #eef0ff;
+  --theme-surface-soft: #f7f8ff;
+
+  /* RGB triplets for rgba(...) usage */
+  --theme-primary-rgb: 43, 43, 255;
+  --theme-primary-dark-rgb: 79, 70, 229;
+}

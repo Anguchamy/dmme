@@ -18,8 +18,8 @@ export function LogoMark({ size = 32 }) {
     >
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#2b2bff" />
-          <stop offset="1" stopColor="#4f46e5" />
+          <stop stopColor="var(--theme-primary)" />
+          <stop offset="1" stopColor="var(--theme-primary-dark)" />
         </linearGradient>
       </defs>
       <rect width="40" height="40" rx="11" fill={`url(#${id})`} />
