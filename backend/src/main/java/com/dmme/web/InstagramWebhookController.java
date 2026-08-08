@@ -2,6 +2,9 @@ package com.dmme.web;
 
 import com.dmme.config.AppProperties;
 import com.dmme.service.AutomationEngine;
+import com.dmme.service.InstagramWebhookVerifier;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +26,18 @@ public class InstagramWebhookController {
 
     private final AppProperties props;
     private final AutomationEngine engine;
+    private final InstagramWebhookVerifier verifier;
+    private final ObjectMapper objectMapper;
 
-    public InstagramWebhookController(AppProperties props, AutomationEngine engine) {
+    public InstagramWebhookController(
+            AppProperties props,
+            AutomationEngine engine,
+            InstagramWebhookVerifier verifier,
+            ObjectMapper objectMapper) {
         this.props = props;
         this.engine = engine;
+        this.verifier = verifier;
+        this.objectMapper = objectMapper;
     }
 
     /** Meta verification handshake. */
@@ -44,7 +55,25 @@ public class InstagramWebhookController {
     /** Event delivery. Always return 200 quickly so Meta does not retry. */
     @PostMapping
     @SuppressWarnings("unchecked")
-    public ResponseEntity<String> receive(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> receive(
+            @RequestBody byte[] rawBody,
+            @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature) {
+        String appSecret = props.getInstagram().getAppSecret();
+        if (appSecret == null || appSecret.isBlank()) {
+            log.warn("Instagram webhook signature verification disabled: no app secret configured");
+        } else if (signature == null || !verifier.verify(rawBody, signature, appSecret)) {
+            log.warn("Instagram webhook rejected: invalid or missing X-Hub-Signature-256");
+            return ResponseEntity.status(403).body("Invalid signature");
+        }
+
+        Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(rawBody, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.error("Error parsing Instagram webhook JSON", e);
+            return ResponseEntity.ok("EVENT_RECEIVED");
+        }
+
         try {
             List<Map<String, Object>> entries =
                     (List<Map<String, Object>>) payload.getOrDefault("entry", List.of());
