@@ -34,27 +34,51 @@ Flyway creates all tables automatically on first backend start — you do **not*
 
 ## 3. Meta / Instagram Messaging API
 
-The DM automation runs on Meta's official API. You need:
+The DM automation uses **Instagram API with Instagram Login** (OAuth via
+`https://www.instagram.com/oauth/authorize`, token exchange via
+`https://api.instagram.com/oauth/access_token`). You need:
 
-1. A **Facebook Page** and an **Instagram Business/Creator account** linked to that Page.
-2. A **Meta Developer app** (developers.facebook.com) with the products:
-   - **Instagram** (Instagram API setup with Facebook Login)
+1. An **Instagram Business or Creator account** (linked to a Facebook Page is fine, but the
+   app does **not** use the older Facebook-Login / Page-token flow).
+2. A **Meta Developer app** at [developers.facebook.com](https://developers.facebook.com) with:
+   - **Instagram** → add the product **Instagram API with Instagram Login** (not "Instagram API
+     with Facebook Login")
    - **Webhooks**
-3. Request these permissions (App Review required for production):
-   - `instagram_basic`
-   - `instagram_manage_messages`
-   - `instagram_manage_comments`
-   - `pages_show_list`, `pages_messaging`
-4. **Webhook configuration** (App Dashboard → Webhooks → Instagram):
-   - Callback URL: `https://<your-backend-host>/api/webhooks/instagram`
-   - Verify token: the same value you set in `META_WEBHOOK_VERIFY_TOKEN`
-   - Subscribe to fields: `comments`, `messages`
-   - For local testing, tunnel with `ngrok http 8080` and use the https URL.
-5. Get a **long-lived Page access token** for the connected Page. Paste the IG user ID,
-   username, Page ID, and token into **Settings → Connect an account** in the app.
+3. **App credentials — read carefully:** under the Instagram product, open **API setup with
+   Instagram login**. Copy the **Instagram app ID** and **Instagram app secret** shown there.
+   Set them as `META_APP_ID` and `META_APP_SECRET` in your backend env (or as
+   `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET`). These values are **not** the same as the
+   top-level **Meta App ID / App Secret** on the app Settings page — using the wrong pair is
+   a common cause of OAuth failures.
+4. **OAuth redirect URIs** — register both in the Instagram Login product settings and set
+   `INSTAGRAM_REDIRECT_URI` on the backend to match the environment you are running:
+
+   | Environment | Redirect URI |
+   | --- | --- |
+   | Local dev | `http://localhost:5173/instagram/callback` |
+   | Production | `https://dmme.co.in/instagram/callback` |
+
+   The frontend callback route posts the authorization code to the backend; the redirect URI
+   must match exactly (including scheme and path).
+5. **Permissions / scopes** requested by the app (App Review required for production):
+   - `instagram_business_basic`
+   - `instagram_business_manage_messages`
+   - `instagram_business_manage_comments`
+6. **Webhook configuration** (App Dashboard → Webhooks → Instagram):
+   - Callback URL: `https://dmme-mntq.onrender.com/api/webhooks/instagram` (local: tunnel with
+     `ngrok http 8080` and use `https://<ngrok-host>/api/webhooks/instagram`)
+   - Verify token: must match `META_WEBHOOK_VERIFY_TOKEN` in your backend env
+   - Subscribe to fields: `comments`, `messages`, `live_comments`
+7. **Connect an account in the app:** sign in to dmme → **Settings → Connect Instagram**. The
+   browser completes Instagram OAuth; the backend stores a long-lived token automatically. No
+   manual token paste is required for normal use.
+
+> **Obsolete (do not follow):** instructions that reference `instagram_basic`, `pages_show_list`,
+> Facebook Login, or pasting a Page access token into Settings described an older integration
+> path. A manual token form still exists under **Advanced** in Settings for dev/testing only.
 
 > Until App Review is approved, only users added as **testers/roles** on your Meta app can
-> trigger live automations. Everything else works in the meantime.
+> authorize and trigger live automations. Everything else works in the meantime.
 
 ---
 
@@ -79,8 +103,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Alternatively, pass everything as environment variables (see `application.yml` for names):
-`DB_URL, DB_USER, DB_PASSWORD, SUPABASE_JWT_SECRET, META_APP_ID, META_APP_SECRET,
-META_WEBHOOK_VERIFY_TOKEN, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET`.
+`DB_URL, DB_USER, DB_PASSWORD, SUPABASE_JWT_SECRET, SUPABASE_URL, CORS_ORIGINS,
+META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, INSTAGRAM_REDIRECT_URI,
+RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET`.
 
 Backend runs on `http://localhost:8080`. Check `GET /api/health`.
 
@@ -103,7 +128,8 @@ Frontend runs on `http://localhost:5173`.
 ## 7. Try it end-to-end
 
 1. Sign up / sign in on `/login` (Supabase Auth).
-2. **Settings → Connect an account** — paste your IG business account + Page token.
+2. **Settings → Connect Instagram** — complete the Instagram OAuth flow for your Business or
+   Creator account.
 3. **Automations → New** — set a keyword (e.g. `link`), write a DM, add a Question step to
    collect an email, optionally enable Ask-for-follow. Save & activate.
 4. Comment the keyword on the connected account's post (from a test user). The webhook fires,

@@ -2,7 +2,7 @@
 # In Render: New > Blueprint > point at this repo. It builds backend/Dockerfile.
 # Fill the sync:false secrets in the Render dashboard (they are not stored in git).
 services:
-  -     type: web
+  - type: web
     name: dmme-backend
     runtime: docker
     rootDir: backend
@@ -30,6 +30,8 @@ services:
         sync: false
       - key: META_WEBHOOK_VERIFY_TOKEN
         sync: false
+      - key: INSTAGRAM_REDIRECT_URI    # https://dmme.co.in/instagram/callback (prod)
+        sync: false
       # --- Razorpay ---
       - key: RAZORPAY_KEY_ID
         sync: false
@@ -38,5 +40,5 @@ services:
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
       # --- CORS: your Cloudflare Pages URL, comma-separated for multiple ---
-      - key: CORS_ORIGINS    # e.g. https://dmme.pages.dev
+      - key: CORS_ORIGINS    # e.g. https://dmme.co.in
         sync: false

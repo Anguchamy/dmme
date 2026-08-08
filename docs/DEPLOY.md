@@ -20,16 +20,18 @@ Set these env vars in Render (all are `sync:false` in the blueprint, so add them
 | `DB_PASSWORD` | Supabase DB password |
 | `SUPABASE_JWT_SECRET` | Supabase -> Settings -> API -> JWT Secret |
 | `SUPABASE_URL` | `https://<project>.supabase.co` |
-| `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` | from the Meta app |
+| `META_APP_ID`, `META_APP_SECRET` | **Instagram app ID / secret** from Instagram product → API setup with Instagram login (not the top-level Meta App ID/Secret) |
+| `META_WEBHOOK_VERIFY_TOKEN` | random string; must match the verify token in Meta Webhooks |
+| `INSTAGRAM_REDIRECT_URI` | `https://dmme.co.in/instagram/callback` |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | from Razorpay |
-| `CORS_ORIGINS` | your Pages URL, e.g. `https://dmme.pages.dev` (comma-separate multiple) |
+| `CORS_ORIGINS` | `https://dmme.co.in` (comma-separate multiple origins) |
 
 - Render provides `PORT`; the app already binds to `${PORT:8080}`.
 - Health check path: `/api/health`.
 - Flyway runs the migrations automatically on first boot.
 - Webhook URLs to register once deployed:
-  - Meta: `https://<render-service>.onrender.com/api/webhooks/instagram`
-  - Razorpay: `https://<render-service>.onrender.com/api/webhooks/razorpay`
+  - Meta: `https://dmme-mntq.onrender.com/api/webhooks/instagram`
+  - Razorpay: `https://dmme-mntq.onrender.com/api/webhooks/razorpay`
 
 ## Frontend → Cloudflare Pages (static)
 
@@ -47,6 +49,8 @@ Environment variables (Pages -> Settings -> Environment variables):
 | --- | --- |
 | `VITE_SUPABASE_URL` | `https://<project>.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
-| `VITE_API_BASE_URL` | your Render backend URL, e.g. `https://dmme-backend.onrender.com` |
+| `VITE_API_BASE_URL` | `https://dmme-mntq.onrender.com` (backend root only — do **not** append `/api`) |
 
-After deploy, add the Pages URL to the backend's `CORS_ORIGINS`, and add it to Supabase -> Authentication -> URL Configuration (Site URL + redirect allow-list) so login redirects work.
+After deploy, confirm the backend's `CORS_ORIGINS` includes `https://dmme.co.in`, and add that
+URL to Supabase → Authentication → URL Configuration (Site URL + redirect allow-list) so
+login redirects work.
