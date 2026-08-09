@@ -29,6 +29,7 @@ public class AppProperties {
     public static class Instagram {
         private String appId;
         private String appSecret;
+        private String webhookAppSecret;
         private String verifyToken;
         private String graphBaseUrl = "https://graph.facebook.com/v21.0";
 

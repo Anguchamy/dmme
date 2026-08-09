@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -58,11 +59,20 @@ public class InstagramWebhookController {
     public ResponseEntity<String> receive(
             @RequestBody byte[] rawBody,
             @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature) {
+        List<String> candidateSecrets = new ArrayList<>(2);
+        String webhookSecret = props.getInstagram().getWebhookAppSecret();
+        if (webhookSecret != null && !webhookSecret.isBlank()) {
+            candidateSecrets.add(webhookSecret);
+        }
         String appSecret = props.getInstagram().getAppSecret();
-        if (appSecret == null || appSecret.isBlank()) {
+        if (appSecret != null && !appSecret.isBlank()) {
+            candidateSecrets.add(appSecret);
+        }
+        if (candidateSecrets.isEmpty()) {
             log.warn("Instagram webhook signature verification disabled: no app secret configured");
-        } else if (signature == null || !verifier.verify(rawBody, signature, appSecret)) {
-            log.warn("Instagram webhook rejected: invalid or missing X-Hub-Signature-256");
+        } else if (signature == null || !verifier.verifyAny(rawBody, signature, candidateSecrets)) {
+            log.warn("Instagram webhook rejected: invalid or missing X-Hub-Signature-256 ({} candidate secret(s) tried)",
+                    candidateSecrets.size());
             return ResponseEntity.status(403).body("Invalid signature");
         }
 

@@ -13,7 +13,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +31,8 @@ import static org.mockito.Mockito.when;
 class InstagramWebhookControllerTest {
 
     private static final byte[] BODY = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
+    private static final String WEBHOOK_SECRET = "webhook-secret";
+    private static final String OAUTH_SECRET = "oauth-secret";
 
     @Mock
     private AppProperties props;
@@ -50,6 +55,7 @@ class InstagramWebhookControllerTest {
 
     @Test
     void blankSecretAllowsRequestThrough() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
         when(instagram.getAppSecret()).thenReturn("  ");
         when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
                 .thenReturn(Map.of("entry", List.of()));
@@ -57,12 +63,41 @@ class InstagramWebhookControllerTest {
         ResponseEntity<String> response = controller.receive(BODY, null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(verifier, never()).verify(any(), any(), any());
+        verify(verifier, never()).verifyAny(any(), any(), any());
+    }
+
+    @Test
+    void validSignatureWithWebhookSecretPasses() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+        String signature = sign(BODY, WEBHOOK_SECRET);
+        when(verifier.verifyAny(BODY, signature, List.of(WEBHOOK_SECRET, OAUTH_SECRET))).thenReturn(true);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("entry", List.of()));
+
+        ResponseEntity<String> response = controller.receive(BODY, signature);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void validSignatureWithOnlyOAuthSecretPasses() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+        String signature = sign(BODY, OAUTH_SECRET);
+        when(verifier.verifyAny(BODY, signature, List.of(OAUTH_SECRET))).thenReturn(true);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("entry", List.of()));
+
+        ResponseEntity<String> response = controller.receive(BODY, signature);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
     void missingSignatureRejectedWhenSecretConfigured() throws Exception {
-        when(instagram.getAppSecret()).thenReturn("configured-secret");
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
 
         ResponseEntity<String> response = controller.receive(BODY, null);
 
@@ -72,12 +107,28 @@ class InstagramWebhookControllerTest {
 
     @Test
     void invalidSignatureRejectedWhenSecretConfigured() throws Exception {
-        when(instagram.getAppSecret()).thenReturn("configured-secret");
-        when(verifier.verify(BODY, "sha256=deadbeef", "configured-secret")).thenReturn(false);
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+        when(verifier.verifyAny(BODY, "sha256=deadbeef", List.of(WEBHOOK_SECRET, OAUTH_SECRET)))
+                .thenReturn(false);
 
         ResponseEntity<String> response = controller.receive(BODY, "sha256=deadbeef");
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(objectMapper, never()).readValue(any(byte[].class), any(TypeReference.class));
+    }
+
+    private static String sign(byte[] body, String secret) {
+        return "sha256=" + HexFormat.of().formatHex(hmac(body, secret));
+    }
+
+    private static byte[] hmac(byte[] body, String secret) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return mac.doFinal(body);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

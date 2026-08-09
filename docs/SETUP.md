@@ -44,12 +44,18 @@ The DM automation uses **Instagram API with Instagram Login** (OAuth via
    - **Instagram** → add the product **Instagram API with Instagram Login** (not "Instagram API
      with Facebook Login")
    - **Webhooks**
-3. **App credentials — read carefully:** under the Instagram product, open **API setup with
-   Instagram login**. Copy the **Instagram app ID** and **Instagram app secret** shown there.
-   Set them as `META_APP_ID` and `META_APP_SECRET` in your backend env (or as
-   `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET`). These values are **not** the same as the
-   top-level **Meta App ID / App Secret** on the app Settings page — using the wrong pair is
-   a common cause of OAuth failures.
+3. **App credentials — read carefully (two different secrets):**
+
+   | Env var | Where to find it | Used for |
+   | --- | --- | --- |
+   | `META_APP_ID` / `INSTAGRAM_APP_ID` | Instagram product → **API setup with Instagram login** → Instagram app ID | OAuth authorize + token exchange |
+   | `META_APP_SECRET` / `INSTAGRAM_APP_SECRET` | Same screen → **Instagram app secret** | OAuth `client_secret` at `api.instagram.com/oauth/access_token` |
+   | `META_WEBHOOK_APP_SECRET` | App **Settings → Basic** → **App Secret** (top-level Meta app secret) | Verifying `X-Hub-Signature-256` on webhook POSTs |
+
+   **Do not mix these up.** The Instagram app secret and the top-level Meta App Secret are
+   different strings. OAuth requires the Instagram pair; Meta signs webhooks with the top-level
+   App Secret. If `META_WEBHOOK_APP_SECRET` is unset, the backend also tries the OAuth secret as
+   a fallback, but production should set `META_WEBHOOK_APP_SECRET` explicitly.
 4. **OAuth redirect URIs** — register both in the Instagram Login product settings and set
    `INSTAGRAM_REDIRECT_URI` on the backend to match the environment you are running:
 
@@ -104,8 +110,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 Alternatively, pass everything as environment variables (see `application.yml` for names):
 `DB_URL, DB_USER, DB_PASSWORD, SUPABASE_JWT_SECRET, SUPABASE_URL, CORS_ORIGINS,
-META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, INSTAGRAM_REDIRECT_URI,
-RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET`.
+META_APP_ID, META_APP_SECRET, META_WEBHOOK_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN,
+INSTAGRAM_REDIRECT_URI, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET`.
 
 Backend runs on `http://localhost:8080`. Check `GET /api/health`.
 

@@ -7,11 +7,22 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.List;
 
 @Service
 public class InstagramWebhookVerifier {
 
     private static final String HEADER_PREFIX = "sha256=";
+
+    /** Verify {@code X-Hub-Signature-256} against any of the given secrets (first match wins). */
+    public boolean verifyAny(byte[] rawBody, String signatureHeader, List<String> secrets) {
+        for (String secret : secrets) {
+            if (verify(rawBody, signatureHeader, secret)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /** Verify {@code X-Hub-Signature-256} against the raw webhook body bytes. */
     public boolean verify(byte[] rawBody, String signatureHeader, String appSecret) {

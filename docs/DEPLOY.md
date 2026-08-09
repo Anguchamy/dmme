@@ -20,7 +20,8 @@ Set these env vars in Render (all are `sync:false` in the blueprint, so add them
 | `DB_PASSWORD` | Supabase DB password |
 | `SUPABASE_JWT_SECRET` | Supabase -> Settings -> API -> JWT Secret |
 | `SUPABASE_URL` | `https://<project>.supabase.co` |
-| `META_APP_ID`, `META_APP_SECRET` | **Instagram app ID / secret** from Instagram product → API setup with Instagram login (not the top-level Meta App ID/Secret) |
+| `META_APP_ID`, `META_APP_SECRET` | **Instagram app ID / secret** from Instagram product → API setup with Instagram login (OAuth only — not the top-level Meta App ID/Secret) |
+| `META_WEBHOOK_APP_SECRET` | **Top-level Meta App Secret** from App settings → Basic — used to verify `X-Hub-Signature-256` on webhook POSTs (falls back to `META_APP_SECRET` if unset) |
 | `META_WEBHOOK_VERIFY_TOKEN` | random string; must match the verify token in Meta Webhooks |
 | `INSTAGRAM_REDIRECT_URI` | `https://dmme.co.in/instagram/callback` |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | from Razorpay |

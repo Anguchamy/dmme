@@ -6,6 +6,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class InstagramWebhookVerifierTest {
 
     private static final String SECRET = "test-app-secret";
+    private static final String WEBHOOK_SECRET = "test-webhook-secret";
     private final InstagramWebhookVerifier verifier = new InstagramWebhookVerifier();
 
     @Test
@@ -59,6 +61,30 @@ class InstagramWebhookVerifierTest {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
 
         assertFalse(verifier.verify(body, "sha256=not-valid-hex", SECRET));
+    }
+
+    @Test
+    void verifyAnyAcceptsFirstMatchingSecret() {
+        byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
+        String signature = sign(body, WEBHOOK_SECRET);
+
+        assertTrue(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
+    }
+
+    @Test
+    void verifyAnyAcceptsFallbackSecret() {
+        byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
+        String signature = sign(body, SECRET);
+
+        assertTrue(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
+    }
+
+    @Test
+    void verifyAnyRejectsWhenNoSecretMatches() {
+        byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
+        String signature = sign(body, "other-secret");
+
+        assertFalse(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
     }
 
     private static String sign(byte[] body, String secret) {

@@ -28,6 +28,8 @@ services:
         sync: false
       - key: META_APP_SECRET
         sync: false
+      - key: META_WEBHOOK_APP_SECRET    # top-level Meta App Secret (App settings -> Basic)
+        sync: false
       - key: META_WEBHOOK_VERIFY_TOKEN
         sync: false
       - key: INSTAGRAM_REDIRECT_URI    # https://dmme.co.in/instagram/callback (prod)

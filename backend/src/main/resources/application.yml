@@ -35,6 +35,7 @@ app:
   instagram:
     app-id: ${INSTAGRAM_APP_ID:${META_APP_ID:}}
     app-secret: ${INSTAGRAM_APP_SECRET:${META_APP_SECRET:}}
+    webhook-app-secret: ${META_WEBHOOK_APP_SECRET:}
     verify-token: ${META_WEBHOOK_VERIFY_TOKEN:dmme-verify}
     graph-base-url: ${META_GRAPH_BASE_URL:https://graph.facebook.com/v21.0}
     redirect-uri: ${INSTAGRAM_REDIRECT_URI:http://localhost:5173/instagram/callback}
