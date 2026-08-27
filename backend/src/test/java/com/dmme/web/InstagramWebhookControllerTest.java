@@ -41,10 +41,9 @@ class InstagramWebhookControllerTest {
     @Mock
     private AutomationEngine engine;
     @Mock
-    private InstagramWebhookVerifier verifier;
-    @Mock
     private ObjectMapper objectMapper;
 
+    private final InstagramWebhookVerifier verifier = new InstagramWebhookVerifier();
     private InstagramWebhookController controller;
 
     @BeforeEach
@@ -60,10 +59,9 @@ class InstagramWebhookControllerTest {
         when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
                 .thenReturn(Map.of("entry", List.of()));
 
-        ResponseEntity<String> response = controller.receive(BODY, null);
+        ResponseEntity<String> response = controller.receive(BODY, null, null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(verifier, never()).verifyAny(any(), any(), any());
     }
 
     @Test
@@ -71,11 +69,10 @@ class InstagramWebhookControllerTest {
         when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
         when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
         String signature = sign(BODY, WEBHOOK_SECRET);
-        when(verifier.verifyAny(BODY, signature, List.of(WEBHOOK_SECRET, OAUTH_SECRET))).thenReturn(true);
         when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
                 .thenReturn(Map.of("entry", List.of()));
 
-        ResponseEntity<String> response = controller.receive(BODY, signature);
+        ResponseEntity<String> response = controller.receive(BODY, signature, "facebookexternalua");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -85,34 +82,55 @@ class InstagramWebhookControllerTest {
         when(instagram.getWebhookAppSecret()).thenReturn(null);
         when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
         String signature = sign(BODY, OAUTH_SECRET);
-        when(verifier.verifyAny(BODY, signature, List.of(OAUTH_SECRET))).thenReturn(true);
         when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
                 .thenReturn(Map.of("entry", List.of()));
 
-        ResponseEntity<String> response = controller.receive(BODY, signature);
+        ResponseEntity<String> response = controller.receive(BODY, signature, null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
-    void missingSignatureRejectedWhenSecretConfigured() throws Exception {
+    void validSignatureWithFallbackOAuthSecretPasses() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+        String signature = sign(BODY, OAUTH_SECRET);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("entry", List.of()));
+
+        ResponseEntity<String> response = controller.receive(BODY, signature, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void missingSignatureRejectedWhenSecretConfigured() {
         when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
         when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
 
-        ResponseEntity<String> response = controller.receive(BODY, null);
+        ResponseEntity<String> response = controller.receive(BODY, null, "curl/8.4.0");
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void malformedSignatureRejectedWhenSecretConfigured() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+
+        ResponseEntity<String> response = controller.receive(BODY, "sha256=not-valid-hex", null);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(objectMapper, never()).readValue(any(byte[].class), any(TypeReference.class));
     }
 
     @Test
-    void invalidSignatureRejectedWhenSecretConfigured() throws Exception {
+    void noMatchingSignatureRejectedWhenSecretConfigured() throws Exception {
         when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
         when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
-        when(verifier.verifyAny(BODY, "sha256=deadbeef", List.of(WEBHOOK_SECRET, OAUTH_SECRET)))
-                .thenReturn(false);
+        String signature = sign(BODY, "other-secret");
 
-        ResponseEntity<String> response = controller.receive(BODY, "sha256=deadbeef");
+        ResponseEntity<String> response = controller.receive(BODY, signature, "facebookexternalua");
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(objectMapper, never()).readValue(any(byte[].class), any(TypeReference.class));

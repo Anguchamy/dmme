@@ -3,6 +3,7 @@ package com.dmme.web;
 import com.dmme.config.AppProperties;
 import com.dmme.service.AutomationEngine;
 import com.dmme.service.InstagramWebhookVerifier;
+import com.dmme.service.InstagramWebhookVerifier.VerificationResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -58,22 +59,33 @@ public class InstagramWebhookController {
     @SuppressWarnings("unchecked")
     public ResponseEntity<String> receive(
             @RequestBody byte[] rawBody,
-            @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature) {
+            @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature,
+            @RequestHeader(name = "User-Agent", required = false) String userAgent) {
         List<String> candidateSecrets = new ArrayList<>(2);
+        boolean webhookSecretConfigured = false;
         String webhookSecret = props.getInstagram().getWebhookAppSecret();
         if (webhookSecret != null && !webhookSecret.isBlank()) {
             candidateSecrets.add(webhookSecret);
+            webhookSecretConfigured = true;
         }
+        boolean oauthSecretConfigured = false;
         String appSecret = props.getInstagram().getAppSecret();
         if (appSecret != null && !appSecret.isBlank()) {
             candidateSecrets.add(appSecret);
+            oauthSecretConfigured = true;
         }
         if (candidateSecrets.isEmpty()) {
             log.warn("Instagram webhook signature verification disabled: no app secret configured");
-        } else if (signature == null || !verifier.verifyAny(rawBody, signature, candidateSecrets)) {
-            log.warn("Instagram webhook rejected: invalid or missing X-Hub-Signature-256 ({} candidate secret(s) tried)",
-                    candidateSecrets.size());
-            return ResponseEntity.status(403).body("Invalid signature");
+        } else {
+            VerificationResult result = verifier.verifyAny(rawBody, signature, candidateSecrets);
+            if (result instanceof VerificationResult.Success success) {
+                log.debug("Instagram webhook signature verified using {} (candidate index {})",
+                        describeMatchedSecret(success.matchedSecretIndex(), webhookSecretConfigured, oauthSecretConfigured),
+                        success.matchedSecretIndex());
+            } else {
+                logVerificationFailure(result, userAgent);
+                return ResponseEntity.status(403).body("Invalid signature");
+            }
         }
 
         Map<String, Object> payload;
@@ -113,6 +125,52 @@ public class InstagramWebhookController {
             log.error("Error processing Instagram webhook", e);
         }
         return ResponseEntity.ok("EVENT_RECEIVED");
+    }
+
+    private void logVerificationFailure(VerificationResult result, String userAgent) {
+        switch (result) {
+            case VerificationResult.MissingHeader ignored -> {
+                if (userAgent != null && !userAgent.isBlank()) {
+                    log.debug("Instagram webhook rejected: no X-Hub-Signature-256 header (User-Agent: {})", userAgent);
+                } else {
+                    log.debug("Instagram webhook rejected: no X-Hub-Signature-256 header");
+                }
+            }
+            case VerificationResult.MalformedHeader malformed -> log.warn(
+                    "Instagram webhook rejected: X-Hub-Signature-256 header present but malformed ({})",
+                    describeMalformation(malformed.reason()));
+            case VerificationResult.NoMatch noMatch -> log.warn(
+                    "Instagram webhook rejected: valid X-Hub-Signature-256 format but HMAC matched none of {} configured secret(s) "
+                            + "(body {} bytes; received digest prefix={}, computed digest prefix={})",
+                    noMatch.candidatesTried(),
+                    noMatch.bodyLengthBytes(),
+                    noMatch.receivedDigestFingerprint(),
+                    noMatch.computedDigestFingerprint());
+            default -> log.warn("Instagram webhook rejected: signature verification failed");
+        }
+    }
+
+    private static String describeMatchedSecret(
+            int index, boolean webhookSecretConfigured, boolean oauthSecretConfigured) {
+        if (index == 0 && webhookSecretConfigured) {
+            return "webhook app secret";
+        }
+        if (index == 0) {
+            return "OAuth app secret";
+        }
+        if (index == 1 && oauthSecretConfigured) {
+            return "OAuth app secret (fallback)";
+        }
+        return "candidate secret at index " + index;
+    }
+
+    private static String describeMalformation(VerificationResult.MalformedHeader.Malformation reason) {
+        return switch (reason) {
+            case MISSING_PREFIX -> "missing sha256= prefix";
+            case EMPTY_DIGEST -> "empty digest after sha256= prefix";
+            case INVALID_HEX -> "digest is not valid hexadecimal";
+            case UNEXPECTED_DIGEST_LENGTH -> "digest length is not 32 bytes";
+        };
     }
 
     @SuppressWarnings("unchecked")

@@ -1,5 +1,6 @@
 package com.dmme.service;
 
+import com.dmme.service.InstagramWebhookVerifier.VerificationResult;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.Mac;
@@ -8,7 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InstagramWebhookVerifierTest {
@@ -31,14 +33,16 @@ class InstagramWebhookVerifierTest {
         String signature = sign(body, SECRET);
         byte[] tampered = "{\"entry\":[1]}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify(tampered, signature, SECRET));
+        VerificationResult result = verifier.verifyAny(tampered, signature, List.of(SECRET));
+        assertInstanceOf(VerificationResult.NoMatch.class, result);
     }
 
     @Test
     void missingHeaderIsRejected() {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify(body, null, SECRET));
+        VerificationResult result = verifier.verifyAny(body, null, List.of(SECRET));
+        assertInstanceOf(VerificationResult.MissingHeader.class, result);
     }
 
     @Test
@@ -46,21 +50,40 @@ class InstagramWebhookVerifierTest {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
         String digest = HexFormat.of().formatHex(hmac(body, SECRET));
 
-        assertFalse(verifier.verify(body, digest, SECRET));
+        VerificationResult result = verifier.verifyAny(body, digest, List.of(SECRET));
+        assertEquals(
+                VerificationResult.MalformedHeader.Malformation.MISSING_PREFIX,
+                ((VerificationResult.MalformedHeader) result).reason());
     }
 
     @Test
     void malformedHeaderWithEmptyDigestIsRejected() {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify(body, "sha256=", SECRET));
+        VerificationResult result = verifier.verifyAny(body, "sha256=", List.of(SECRET));
+        assertEquals(
+                VerificationResult.MalformedHeader.Malformation.EMPTY_DIGEST,
+                ((VerificationResult.MalformedHeader) result).reason());
     }
 
     @Test
     void malformedHeaderWithInvalidHexIsRejected() {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify(body, "sha256=not-valid-hex", SECRET));
+        VerificationResult result = verifier.verifyAny(body, "sha256=not-valid-hex", List.of(SECRET));
+        assertEquals(
+                VerificationResult.MalformedHeader.Malformation.INVALID_HEX,
+                ((VerificationResult.MalformedHeader) result).reason());
+    }
+
+    @Test
+    void malformedHeaderWithUnexpectedDigestLengthIsRejected() {
+        byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
+
+        VerificationResult result = verifier.verifyAny(body, "sha256=deadbeef", List.of(SECRET));
+        assertEquals(
+                VerificationResult.MalformedHeader.Malformation.UNEXPECTED_DIGEST_LENGTH,
+                ((VerificationResult.MalformedHeader) result).reason());
     }
 
     @Test
@@ -68,7 +91,8 @@ class InstagramWebhookVerifierTest {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
         String signature = sign(body, WEBHOOK_SECRET);
 
-        assertTrue(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
+        VerificationResult result = verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET));
+        assertEquals(0, ((VerificationResult.Success) result).matchedSecretIndex());
     }
 
     @Test
@@ -76,7 +100,8 @@ class InstagramWebhookVerifierTest {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
         String signature = sign(body, SECRET);
 
-        assertTrue(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
+        VerificationResult result = verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET));
+        assertEquals(1, ((VerificationResult.Success) result).matchedSecretIndex());
     }
 
     @Test
@@ -84,7 +109,12 @@ class InstagramWebhookVerifierTest {
         byte[] body = "{\"entry\":[]}".getBytes(StandardCharsets.UTF_8);
         String signature = sign(body, "other-secret");
 
-        assertFalse(verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET)));
+        VerificationResult result = verifier.verifyAny(body, signature, List.of(WEBHOOK_SECRET, SECRET));
+        VerificationResult.NoMatch noMatch = assertInstanceOf(VerificationResult.NoMatch.class, result);
+        assertEquals(2, noMatch.candidatesTried());
+        assertEquals(body.length, noMatch.bodyLengthBytes());
+        assertEquals(8, noMatch.receivedDigestFingerprint().length());
+        assertEquals(8, noMatch.computedDigestFingerprint().length());
     }
 
     private static String sign(byte[] body, String secret) {
