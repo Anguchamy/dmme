@@ -1,15 +1,21 @@
 package com.dmme.web;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.dmme.config.AppProperties;
 import com.dmme.service.AutomationEngine;
 import com.dmme.service.InstagramWebhookVerifier;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -21,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -45,11 +52,23 @@ class InstagramWebhookControllerTest {
 
     private final InstagramWebhookVerifier verifier = new InstagramWebhookVerifier();
     private InstagramWebhookController controller;
+    private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void setUp() {
         controller = new InstagramWebhookController(props, engine, verifier, objectMapper);
         when(props.getInstagram()).thenReturn(instagram);
+
+        Logger logger = (Logger) LoggerFactory.getLogger(InstagramWebhookController.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
+    }
+
+    @AfterEach
+    void tearDown() {
+        Logger logger = (Logger) LoggerFactory.getLogger(InstagramWebhookController.class);
+        logger.detachAppender(logAppender);
     }
 
     @Test
@@ -134,6 +153,37 @@ class InstagramWebhookControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         verify(objectMapper, never()).readValue(any(byte[].class), any(TypeReference.class));
+
+        String warnMessage = logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .map(ILoggingEvent::getFormattedMessage)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(warnMessage.contains("candidate[0] webhook app secret fp="));
+        assertTrue(warnMessage.contains("computed="));
+        assertTrue(warnMessage.contains("candidate[1] OAuth app secret (fallback) fp="));
+        assertTrue(warnMessage.contains("bodyHash="));
+        assertTrue(warnMessage.contains("len=" + WEBHOOK_SECRET.length()));
+        assertTrue(warnMessage.contains("len=" + OAUTH_SECRET.length()));
+    }
+
+    @Test
+    void startupLogsConfiguredSecretFingerprints() {
+        when(instagram.getWebhookAppSecret()).thenReturn(WEBHOOK_SECRET);
+        when(instagram.getAppSecret()).thenReturn(OAUTH_SECRET);
+
+        controller.logConfiguredWebhookSecretsAtStartup();
+
+        String infoMessage = logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.INFO)
+                .map(ILoggingEvent::getFormattedMessage)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(infoMessage.startsWith("Instagram webhook secrets configured:"));
+        assertTrue(infoMessage.contains("webhook app secret fp="));
+        assertTrue(infoMessage.contains("len=" + WEBHOOK_SECRET.length()));
+        assertTrue(infoMessage.contains("OAuth app secret (fallback) fp="));
+        assertTrue(infoMessage.contains("len=" + OAUTH_SECRET.length()));
     }
 
     private static String sign(byte[] body, String secret) {

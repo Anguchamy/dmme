@@ -11,6 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InstagramWebhookVerifierTest {
@@ -114,7 +115,15 @@ class InstagramWebhookVerifierTest {
         assertEquals(2, noMatch.candidatesTried());
         assertEquals(body.length, noMatch.bodyLengthBytes());
         assertEquals(8, noMatch.receivedDigestFingerprint().length());
-        assertEquals(8, noMatch.computedDigestFingerprint().length());
+        assertEquals(2, noMatch.computedByCandidate().size());
+        assertEquals(0, noMatch.computedByCandidate().get(0).index());
+        assertEquals(1, noMatch.computedByCandidate().get(1).index());
+        assertEquals(8, noMatch.computedByCandidate().get(0).digestPrefix().length());
+        assertEquals(8, noMatch.computedByCandidate().get(1).digestPrefix().length());
+        assertNotEquals(
+                noMatch.computedByCandidate().get(0).digestPrefix(),
+                noMatch.computedByCandidate().get(1).digestPrefix());
+        assertEquals(12, noMatch.bodyHashPrefix().length());
     }
 
     private static String sign(byte[] body, String secret) {

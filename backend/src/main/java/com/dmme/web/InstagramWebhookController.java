@@ -2,10 +2,13 @@ package com.dmme.web;
 
 import com.dmme.config.AppProperties;
 import com.dmme.service.AutomationEngine;
+import com.dmme.service.InstagramWebhookDiagnostics;
+import com.dmme.service.InstagramWebhookDiagnostics.ConfiguredSecret;
 import com.dmme.service.InstagramWebhookVerifier;
 import com.dmme.service.InstagramWebhookVerifier.VerificationResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +45,17 @@ public class InstagramWebhookController {
         this.objectMapper = objectMapper;
     }
 
+    @PostConstruct
+    void logConfiguredWebhookSecretsAtStartup() {
+        List<ConfiguredSecret> configured = configuredWebhookSecrets();
+        if (configured.isEmpty()) {
+            log.info("Instagram webhook secrets: none configured (signature verification disabled)");
+        } else {
+            log.info("Instagram webhook secrets configured: {}",
+                    InstagramWebhookDiagnostics.formatStartupSummary(configured));
+        }
+    }
+
     /** Meta verification handshake. */
     @GetMapping
     public ResponseEntity<String> verify(
@@ -61,29 +75,20 @@ public class InstagramWebhookController {
             @RequestBody byte[] rawBody,
             @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature,
             @RequestHeader(name = "User-Agent", required = false) String userAgent) {
-        List<String> candidateSecrets = new ArrayList<>(2);
-        boolean webhookSecretConfigured = false;
-        String webhookSecret = props.getInstagram().getWebhookAppSecret();
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
-            candidateSecrets.add(webhookSecret);
-            webhookSecretConfigured = true;
-        }
-        boolean oauthSecretConfigured = false;
-        String appSecret = props.getInstagram().getAppSecret();
-        if (appSecret != null && !appSecret.isBlank()) {
-            candidateSecrets.add(appSecret);
-            oauthSecretConfigured = true;
-        }
-        if (candidateSecrets.isEmpty()) {
+        List<ConfiguredSecret> configuredSecrets = configuredWebhookSecrets();
+        if (configuredSecrets.isEmpty()) {
             log.warn("Instagram webhook signature verification disabled: no app secret configured");
         } else {
+            List<String> candidateSecrets = configuredSecrets.stream()
+                    .map(ConfiguredSecret::value)
+                    .toList();
             VerificationResult result = verifier.verifyAny(rawBody, signature, candidateSecrets);
             if (result instanceof VerificationResult.Success success) {
                 log.debug("Instagram webhook signature verified using {} (candidate index {})",
-                        describeMatchedSecret(success.matchedSecretIndex(), webhookSecretConfigured, oauthSecretConfigured),
+                        configuredSecrets.get(success.matchedSecretIndex()).label(),
                         success.matchedSecretIndex());
             } else {
-                logVerificationFailure(result, userAgent);
+                logVerificationFailure(result, configuredSecrets, userAgent);
                 return ResponseEntity.status(403).body("Invalid signature");
             }
         }
@@ -127,7 +132,24 @@ public class InstagramWebhookController {
         return ResponseEntity.ok("EVENT_RECEIVED");
     }
 
-    private void logVerificationFailure(VerificationResult result, String userAgent) {
+    private List<ConfiguredSecret> configuredWebhookSecrets() {
+        List<ConfiguredSecret> secrets = new ArrayList<>(2);
+        boolean webhookSecretConfigured = false;
+        String webhookSecret = props.getInstagram().getWebhookAppSecret();
+        if (webhookSecret != null && !webhookSecret.isBlank()) {
+            secrets.add(new ConfiguredSecret(0, "webhook app secret", webhookSecret));
+            webhookSecretConfigured = true;
+        }
+        String appSecret = props.getInstagram().getAppSecret();
+        if (appSecret != null && !appSecret.isBlank()) {
+            String label = webhookSecretConfigured ? "OAuth app secret (fallback)" : "OAuth app secret";
+            secrets.add(new ConfiguredSecret(secrets.size(), label, appSecret));
+        }
+        return secrets;
+    }
+
+    private void logVerificationFailure(
+            VerificationResult result, List<ConfiguredSecret> configuredSecrets, String userAgent) {
         switch (result) {
             case VerificationResult.MissingHeader ignored -> {
                 if (userAgent != null && !userAgent.isBlank()) {
@@ -140,28 +162,9 @@ public class InstagramWebhookController {
                     "Instagram webhook rejected: X-Hub-Signature-256 header present but malformed ({})",
                     describeMalformation(malformed.reason()));
             case VerificationResult.NoMatch noMatch -> log.warn(
-                    "Instagram webhook rejected: valid X-Hub-Signature-256 format but HMAC matched none of {} configured secret(s) "
-                            + "(body {} bytes; received digest prefix={}, computed digest prefix={})",
-                    noMatch.candidatesTried(),
-                    noMatch.bodyLengthBytes(),
-                    noMatch.receivedDigestFingerprint(),
-                    noMatch.computedDigestFingerprint());
+                    InstagramWebhookDiagnostics.formatNoMatchMessage(noMatch, configuredSecrets));
             default -> log.warn("Instagram webhook rejected: signature verification failed");
         }
-    }
-
-    private static String describeMatchedSecret(
-            int index, boolean webhookSecretConfigured, boolean oauthSecretConfigured) {
-        if (index == 0 && webhookSecretConfigured) {
-            return "webhook app secret";
-        }
-        if (index == 0) {
-            return "OAuth app secret";
-        }
-        if (index == 1 && oauthSecretConfigured) {
-            return "OAuth app secret (fallback)";
-        }
-        return "candidate secret at index " + index;
     }
 
     private static String describeMalformation(VerificationResult.MalformedHeader.Malformation reason) {

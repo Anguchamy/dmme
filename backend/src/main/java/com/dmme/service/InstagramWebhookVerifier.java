@@ -6,6 +6,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -14,7 +15,6 @@ public class InstagramWebhookVerifier {
 
     private static final String HEADER_PREFIX = "sha256=";
     private static final int SHA256_DIGEST_BYTES = 32;
-    private static final int FINGERPRINT_HEX_CHARS = 8;
 
     public sealed interface VerificationResult {
         record Success(int matchedSecretIndex) implements VerificationResult {}
@@ -30,11 +30,14 @@ public class InstagramWebhookVerifier {
             }
         }
 
+        record ComputedCandidate(int index, String digestPrefix) {}
+
         record NoMatch(
                 int candidatesTried,
                 int bodyLengthBytes,
                 String receivedDigestFingerprint,
-                String computedDigestFingerprint) implements VerificationResult {}
+                String bodyHashPrefix,
+                List<ComputedCandidate> computedByCandidate) implements VerificationResult {}
     }
 
     /** Verify {@code X-Hub-Signature-256} against any of the given secrets (first match wins). */
@@ -58,12 +61,18 @@ public class InstagramWebhookVerifier {
             }
         }
 
-        String computedHex = HexFormat.of().formatHex(hmacSha256Bytes(rawBody, secrets.getFirst()));
+        List<VerificationResult.NoMatch.ComputedCandidate> computed = new ArrayList<>(secrets.size());
+        for (int i = 0; i < secrets.size(); i++) {
+            String computedHex = HexFormat.of().formatHex(hmacSha256Bytes(rawBody, secrets.get(i)));
+            computed.add(new VerificationResult.NoMatch.ComputedCandidate(
+                    i, InstagramWebhookDiagnostics.digestFingerprint(computedHex)));
+        }
         return new VerificationResult.NoMatch(
                 secrets.size(),
                 rawBody.length,
-                digestFingerprint(receivedHex),
-                digestFingerprint(computedHex));
+                InstagramWebhookDiagnostics.digestFingerprint(receivedHex),
+                InstagramWebhookDiagnostics.bodyHashPrefix(rawBody),
+                List.copyOf(computed));
     }
 
     /** Verify {@code X-Hub-Signature-256} against the raw webhook body bytes. */
@@ -96,13 +105,6 @@ public class InstagramWebhookVerifier {
                     VerificationResult.MalformedHeader.Malformation.UNEXPECTED_DIGEST_LENGTH);
         }
         return null;
-    }
-
-    private static String digestFingerprint(String hexDigest) {
-        if (hexDigest.length() <= FINGERPRINT_HEX_CHARS) {
-            return hexDigest;
-        }
-        return hexDigest.substring(0, FINGERPRINT_HEX_CHARS);
     }
 
     private static byte[] hmacSha256Bytes(byte[] data, String secret) {
