@@ -29,6 +29,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -184,6 +185,75 @@ class InstagramWebhookControllerTest {
         assertTrue(infoMessage.contains("len=" + WEBHOOK_SECRET.length()));
         assertTrue(infoMessage.contains("OAuth app secret (fallback) fp="));
         assertTrue(infoMessage.contains("len=" + OAUTH_SECRET.length()));
+    }
+
+    @Test
+    void emptyEntryListIsReportedRatherThanIgnored() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(null);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("object", "instagram", "entry", List.of()));
+
+        controller.receive(BODY, null, null);
+
+        assertTrue(warnings().anyMatch(m -> m.contains("carries no entries")));
+        verify(engine, never()).handleMessage(any(), any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void entryWithoutMessagingOrChangesIsReported() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(null);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("object", "instagram",
+                        "entry", List.of(Map.of("id", "17841400000000000", "time", 1L))));
+
+        controller.receive(BODY, null, null);
+
+        assertTrue(warnings().anyMatch(m ->
+                m.contains("neither messaging nor changes") && m.contains("17841400000000000")));
+    }
+
+    @Test
+    void unhandledChangeFieldIsReportedWithItsName() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(null);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("object", "instagram", "entry", List.of(Map.of(
+                        "id", "17841400000000000",
+                        "changes", List.of(Map.of("field", "story_insights", "value", Map.of()))))));
+
+        controller.receive(BODY, null, null);
+
+        assertTrue(warnings().anyMatch(m ->
+                m.contains("field=story_insights") && m.contains("only comments and live_comments")));
+        verify(engine, never()).handleComment(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void messagingEventWithoutTextIsFlaggedAsUnmatchable() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(null);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("object", "instagram", "entry", List.of(Map.of(
+                        "id", "17841400000000000",
+                        "messaging", List.of(Map.of(
+                                "sender", Map.of("id", "999"),
+                                "message", Map.of("mid", "abc")))))));
+
+        controller.receive(BODY, null, null);
+
+        assertTrue(logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.INFO)
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(m -> m.contains("carries no text")));
+        verify(engine).handleMessage(eq("17841400000000000"), eq("999"), any(), eq(null), eq(false));
+    }
+
+    private java.util.stream.Stream<String> warnings() {
+        return logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .map(ILoggingEvent::getFormattedMessage);
     }
 
     private static String sign(byte[] body, String secret) {

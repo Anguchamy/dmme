@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,66 +73,91 @@ public class InstagramWebhookController {
 
     /** Event delivery. Always return 200 quickly so Meta does not retry. */
     @PostMapping
-    @SuppressWarnings("unchecked")
     public ResponseEntity<String> receive(
             @RequestBody byte[] rawBody,
             @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature,
             @RequestHeader(name = "User-Agent", required = false) String userAgent) {
-        List<ConfiguredSecret> configuredSecrets = configuredWebhookSecrets();
-        if (configuredSecrets.isEmpty()) {
-            log.warn("Instagram webhook signature verification disabled: no app secret configured");
-        } else {
-            List<String> candidateSecrets = configuredSecrets.stream()
-                    .map(ConfiguredSecret::value)
-                    .toList();
-            VerificationResult result = verifier.verifyAny(rawBody, signature, candidateSecrets);
-            if (result instanceof VerificationResult.Success success) {
-                log.debug("Instagram webhook signature verified using {} (candidate index {})",
-                        configuredSecrets.get(success.matchedSecretIndex()).label(),
-                        success.matchedSecretIndex());
+        MDC.put("correlationId", newCorrelationId());
+        try {
+            List<ConfiguredSecret> configuredSecrets = configuredWebhookSecrets();
+            if (configuredSecrets.isEmpty()) {
+                log.warn("Instagram webhook signature verification disabled: no app secret configured");
             } else {
-                logVerificationFailure(result, configuredSecrets, userAgent);
-                return ResponseEntity.status(403).body("Invalid signature");
+                List<String> candidateSecrets = configuredSecrets.stream()
+                        .map(ConfiguredSecret::value)
+                        .toList();
+                VerificationResult result = verifier.verifyAny(rawBody, signature, candidateSecrets);
+                if (result instanceof VerificationResult.Success success) {
+                    log.debug("Instagram webhook signature verified using {} (candidate index {})",
+                            configuredSecrets.get(success.matchedSecretIndex()).label(),
+                            success.matchedSecretIndex());
+                } else {
+                    logVerificationFailure(result, configuredSecrets, userAgent);
+                    return ResponseEntity.status(403).body("Invalid signature");
+                }
             }
-        }
 
-        Map<String, Object> payload;
-        try {
-            payload = objectMapper.readValue(rawBody, new TypeReference<>() {});
-        } catch (Exception e) {
-            log.error("Error parsing Instagram webhook JSON", e);
+            Map<String, Object> payload;
+            try {
+                payload = objectMapper.readValue(rawBody, new TypeReference<>() {});
+            } catch (Exception e) {
+                log.error("Error parsing Instagram webhook JSON", e);
+                return ResponseEntity.ok("EVENT_RECEIVED");
+            }
+
+            log.debug("Instagram webhook payload: {}",
+                    truncateForLog(new String(rawBody, StandardCharsets.UTF_8), 2000));
+
+            try {
+                dispatch(payload);
+            } catch (Exception e) {
+                log.error("Error processing Instagram webhook", e);
+            }
             return ResponseEntity.ok("EVENT_RECEIVED");
+        } finally {
+            MDC.remove("correlationId");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void dispatch(Map<String, Object> payload) {
+        List<Map<String, Object>> entries =
+                (List<Map<String, Object>>) payload.getOrDefault("entry", List.of());
+        log.info("Instagram webhook received: object={} entries={}",
+                payload.get("object"), entries.size());
+        if (entries.isEmpty()) {
+            log.warn("Instagram webhook carries no entries — nothing to dispatch (payload keys: {})",
+                    payload.keySet());
+            return;
         }
 
-        try {
-            List<Map<String, Object>> entries =
-                    (List<Map<String, Object>>) payload.getOrDefault("entry", List.of());
+        for (Map<String, Object> entry : entries) {
+            String igUserId = String.valueOf(entry.get("id"));
 
-            for (Map<String, Object> entry : entries) {
-                String igUserId = String.valueOf(entry.get("id"));
+            // --- Direct messages (Messenger platform shape) ---
+            List<Map<String, Object>> messaging =
+                    (List<Map<String, Object>>) entry.get("messaging");
+            // --- Comments / mentions (changes shape) ---
+            List<Map<String, Object>> changes =
+                    (List<Map<String, Object>>) entry.get("changes");
 
-                // --- Direct messages (Messenger platform shape) ---
-                List<Map<String, Object>> messaging =
-                        (List<Map<String, Object>>) entry.get("messaging");
-                if (messaging != null) {
-                    for (Map<String, Object> m : messaging) {
-                        handleMessaging(igUserId, m);
-                    }
-                }
+            if (messaging == null && changes == null) {
+                log.warn("Instagram webhook entry for igUser={} has neither messaging nor changes"
+                        + " — ignoring (entry keys: {})", igUserId, entry.keySet());
+                continue;
+            }
 
-                // --- Comments / mentions (changes shape) ---
-                List<Map<String, Object>> changes =
-                        (List<Map<String, Object>>) entry.get("changes");
-                if (changes != null) {
-                    for (Map<String, Object> change : changes) {
-                        handleChange(igUserId, change);
-                    }
+            if (messaging != null) {
+                for (Map<String, Object> m : messaging) {
+                    handleMessaging(igUserId, m);
                 }
             }
-        } catch (Exception e) {
-            log.error("Error processing Instagram webhook", e);
+            if (changes != null) {
+                for (Map<String, Object> change : changes) {
+                    handleChange(igUserId, change);
+                }
+            }
         }
-        return ResponseEntity.ok("EVENT_RECEIVED");
     }
 
     private List<ConfiguredSecret> configuredWebhookSecrets() {
@@ -180,59 +206,68 @@ public class InstagramWebhookController {
 
     @SuppressWarnings("unchecked")
     private void handleMessaging(String igUserId, Map<String, Object> m) {
-        MDC.put("correlationId", newCorrelationId());
-        try {
-            Map<String, Object> sender = (Map<String, Object>) m.get("sender");
-            Map<String, Object> message = (Map<String, Object>) m.get("message");
-            if (sender == null || message == null) return;
-            if (Boolean.TRUE.equals(message.get("is_echo"))) return;
-
-            String fromIgsid = String.valueOf(sender.get("id"));
-            String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
-
-            Map<String, Object> replyTo = (Map<String, Object>) message.get("reply_to");
-            boolean storyReply = replyTo != null && replyTo.get("story") != null;
-
-            log.info("Message webhook: igUser={} from={} storyReply={} text={}",
-                    igUserId, fromIgsid, storyReply, truncateForLog(text));
-            engine.handleMessage(igUserId, fromIgsid, null, text, storyReply);
-        } finally {
-            MDC.remove("correlationId");
+        Map<String, Object> sender = (Map<String, Object>) m.get("sender");
+        Map<String, Object> message = (Map<String, Object>) m.get("message");
+        if (sender == null || message == null) {
+            log.info("Ignoring messaging event for igUser={} with no sender or message (keys: {})",
+                    igUserId, m.keySet());
+            return;
         }
+        if (Boolean.TRUE.equals(message.get("is_echo"))) {
+            log.debug("Ignoring echo of our own outbound message for igUser={}", igUserId);
+            return;
+        }
+
+        String fromIgsid = String.valueOf(sender.get("id"));
+        String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
+
+        Map<String, Object> replyTo = (Map<String, Object>) message.get("reply_to");
+        boolean storyReply = replyTo != null && replyTo.get("story") != null;
+
+        log.info("Message webhook: igUser={} from={} storyReply={} text={}",
+                igUserId, fromIgsid, storyReply, truncateForLog(text));
+        if (text == null) {
+            log.info("Message from={} carries no text (attachment, reaction or share),"
+                    + " so keyword automations cannot match it", fromIgsid);
+        }
+        engine.handleMessage(igUserId, fromIgsid, null, text, storyReply);
     }
 
     @SuppressWarnings("unchecked")
     private void handleChange(String igUserId, Map<String, Object> change) {
-        MDC.put("correlationId", newCorrelationId());
-        try {
-            String field = String.valueOf(change.get("field"));
-            String triggerType = switch (field) {
-                case "comments" -> "COMMENT";
-                case "live_comments" -> "LIVE";
-                default -> null;
-            };
-            if (triggerType == null) return;
-
-            Map<String, Object> value = (Map<String, Object>) change.get("value");
-            if (value == null) return;
-
-            String commentId = String.valueOf(value.get("id"));
-            String text = value.get("text") != null ? String.valueOf(value.get("text")) : null;
-
-            Map<String, Object> from = (Map<String, Object>) value.get("from");
-            String fromIgsid = from != null ? String.valueOf(from.get("id")) : null;
-            String fromUsername = from != null && from.get("username") != null
-                    ? String.valueOf(from.get("username")) : null;
-
-            Map<String, Object> media = (Map<String, Object>) value.get("media");
-            String mediaId = media != null ? String.valueOf(media.get("id")) : null;
-
-            log.info("{} webhook: igUser={} media={} from=@{} text={}",
-                    triggerType, igUserId, mediaId, fromUsername, truncateForLog(text));
-            engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
-        } finally {
-            MDC.remove("correlationId");
+        String field = String.valueOf(change.get("field"));
+        String triggerType = switch (field) {
+            case "comments" -> "COMMENT";
+            case "live_comments" -> "LIVE";
+            default -> null;
+        };
+        if (triggerType == null) {
+            log.warn("Ignoring unhandled Instagram webhook field={} for igUser={}"
+                    + " — only comments and live_comments drive automations", field, igUserId);
+            return;
         }
+
+        Map<String, Object> value = (Map<String, Object>) change.get("value");
+        if (value == null) {
+            log.warn("Instagram webhook field={} for igUser={} has no value object — ignoring",
+                    field, igUserId);
+            return;
+        }
+
+        String commentId = String.valueOf(value.get("id"));
+        String text = value.get("text") != null ? String.valueOf(value.get("text")) : null;
+
+        Map<String, Object> from = (Map<String, Object>) value.get("from");
+        String fromIgsid = from != null ? String.valueOf(from.get("id")) : null;
+        String fromUsername = from != null && from.get("username") != null
+                ? String.valueOf(from.get("username")) : null;
+
+        Map<String, Object> media = (Map<String, Object>) value.get("media");
+        String mediaId = media != null ? String.valueOf(media.get("id")) : null;
+
+        log.info("{} webhook: igUser={} media={} from=@{} text={}",
+                triggerType, igUserId, mediaId, fromUsername, truncateForLog(text));
+        engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
     }
 
     private static String newCorrelationId() {
@@ -240,8 +275,12 @@ public class InstagramWebhookController {
     }
 
     private static String truncateForLog(String text) {
+        return truncateForLog(text, 80);
+    }
+
+    private static String truncateForLog(String text, int maxLength) {
         if (text == null) return "";
-        if (text.length() <= 80) return text;
-        return text.substring(0, 80) + "...";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength) + "...";
     }
 }
