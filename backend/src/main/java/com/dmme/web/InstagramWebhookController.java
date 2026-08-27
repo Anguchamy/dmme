@@ -209,8 +209,14 @@ public class InstagramWebhookController {
         Map<String, Object> sender = (Map<String, Object>) m.get("sender");
         Map<String, Object> message = (Map<String, Object>) m.get("message");
         if (sender == null || message == null) {
-            log.info("Ignoring messaging event for igUser={} with no sender or message (keys: {})",
-                    igUserId, m.keySet());
+            String kind = messagingEventKind(m);
+            if (kind != null) {
+                log.info("Ignoring Instagram {} event for igUser={} — automations only run on"
+                        + " inbound messages", kind, igUserId);
+            } else {
+                log.info("Ignoring messaging event for igUser={} with no sender or message (keys: {})",
+                        igUserId, m.keySet());
+            }
             return;
         }
         if (Boolean.TRUE.equals(message.get("is_echo"))) {
@@ -268,6 +274,19 @@ public class InstagramWebhookController {
         log.info("{} webhook: igUser={} media={} from=@{} text={}",
                 triggerType, igUserId, mediaId, fromUsername, truncateForLog(text));
         engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
+    }
+
+    /**
+     * Name the messaging shapes Meta delivers that are not inbound messages, so they
+     * are not mistaken for malformed payloads. Meta sends these on the "messages"
+     * subscription alongside (or instead of) the message itself.
+     */
+    private static String messagingEventKind(Map<String, Object> m) {
+        for (String key : List.of("message_edit", "reaction", "read", "delivery",
+                "postback", "referral", "seen", "message_reactions")) {
+            if (m.containsKey(key)) return key;
+        }
+        return null;
     }
 
     private static String newCorrelationId() {

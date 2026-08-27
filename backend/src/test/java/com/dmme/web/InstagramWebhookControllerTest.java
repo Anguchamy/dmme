@@ -250,6 +250,26 @@ class InstagramWebhookControllerTest {
         verify(engine).handleMessage(eq("17841400000000000"), eq("999"), any(), eq(null), eq(false));
     }
 
+    @Test
+    void messageEditEventIsNamedRatherThanReportedAsMalformed() throws Exception {
+        when(instagram.getWebhookAppSecret()).thenReturn(null);
+        when(instagram.getAppSecret()).thenReturn(null);
+        when(objectMapper.readValue(eq(BODY), any(TypeReference.class)))
+                .thenReturn(Map.of("object", "instagram", "entry", List.of(Map.of(
+                        "id", "17841448037418309",
+                        "messaging", List.of(Map.of(
+                                "timestamp", 1787860966284L,
+                                "message_edit", Map.of("mid", "abc", "num_edit", 0)))))));
+
+        controller.receive(BODY, null, null);
+
+        assertTrue(logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.INFO)
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(m -> m.contains("Ignoring Instagram message_edit event")));
+        verify(engine, never()).handleMessage(any(), any(), any(), any(), anyBoolean());
+    }
+
     private java.util.stream.Stream<String> warnings() {
         return logAppender.list.stream()
                 .filter(event -> event.getLevel() == Level.WARN)
