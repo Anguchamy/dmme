@@ -175,7 +175,21 @@ public class InstagramClient {
                     .bodyToMono(Map.class)
                     .block();
             return res != null && Boolean.TRUE.equals(res.get("is_user_follow_business"));
+        } catch (InstagramApiException e) {
+            log.warn(
+                    "Follow check failed due to Graph API error (treating as non-follower, not confirmed): "
+                            + "status={} path={} type={} code={} subcode={} message=\"{}\" fbtrace_id={}",
+                    e.getHttpStatus().value(),
+                    e.getRequestPath(),
+                    orDash(e.getGraphType()),
+                    orDash(e.getGraphCode()),
+                    orDash(e.getErrorSubcode()),
+                    e.getGraphMessage() != null ? e.getGraphMessage() : "",
+                    orDash(e.getFbtraceId()));
+            return false;
         } catch (Exception e) {
+            log.warn("Follow check failed due to unexpected error (treating as non-follower, not confirmed): {}",
+                    e.getMessage());
             return false;
         }
     }

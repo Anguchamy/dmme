@@ -47,5 +47,7 @@ app:
     webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 logging:
+  pattern:
+    console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr(${APPLICATION_NAME:-}){magenta}%clr([%15.15t]){faint} %clr([%X{correlationId}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
   level:
     com.dmme: DEBUG

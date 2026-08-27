@@ -20,6 +20,7 @@ import java.util.UUID;
 public class AutomationEngine {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationEngine.class);
+    private static final int LOG_TEXT_MAX = 80;
 
     private final AutomationRepository automations;
     private final TriggerKeywordRepository keywords;
@@ -56,23 +57,48 @@ public class AutomationEngine {
     public void handleComment(String igUserId, String mediaId, String commentId,
                               String fromIgsid, String fromUsername, String text, String triggerType) {
         InstagramAccount acc = igAccounts.findByIgUserId(igUserId).orElse(null);
-        if (acc == null || fromIgsid == null) return;
+        if (acc == null) {
+            log.warn("No connected Instagram account for igUserId={} — connect the account in Settings",
+                    igUserId);
+            return;
+        }
+        if (fromIgsid == null) {
+            log.warn("Comment event missing sender id (fromIgsid) for igUserId={}", igUserId);
+            return;
+        }
 
         String type = (triggerType != null) ? triggerType : "COMMENT";
+        log.info("Handling {} event for igAccountId={} from={} text=\"{}\"",
+                type, acc.getId(), fromIgsid, truncate(text));
         logInbound(acc.getUserId(), null, fromIgsid, type, text);
 
         List<Automation> candidates =
                 automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), type, "ACTIVE");
+        logCandidateCount(acc.getId(), type, "ACTIVE", candidates.size());
 
+        boolean matched = false;
         for (Automation a : candidates) {
-            if (a.getIgMediaId() != null && !a.getIgMediaId().equals(mediaId)) continue;
-            if (!matches(a, text)) continue;
+            if (a.getIgMediaId() != null && !a.getIgMediaId().equals(mediaId)) {
+                log.info("Skipping automation id={} name=\"{}\": media id mismatch (expected={}, actual={})",
+                        a.getId(), a.getName(), a.getIgMediaId(), mediaId);
+                continue;
+            }
+            if (!matches(a, text)) {
+                log.info("Skipping automation id={} name=\"{}\": keyword mismatch for text=\"{}\"",
+                        a.getId(), a.getName(), truncate(text));
+                continue;
+            }
 
+            log.info("Selected automation id={} name=\"{}\"", a.getId(), a.getName());
             if (a.getPublicReply() != null && !a.getPublicReply().isBlank() && commentId != null) {
                 safeReply(acc, commentId, a.getPublicReply());
             }
             startFlow(acc, a, fromIgsid, fromUsername);
-            break; // one automation per comment
+            matched = true;
+            break;
+        }
+        if (!matched && !candidates.isEmpty()) {
+            log.info("No automation matched after evaluating {} candidate(s)", candidates.size());
         }
     }
 
@@ -83,24 +109,52 @@ public class AutomationEngine {
     public void handleMessage(String igUserId, String fromIgsid, String fromUsername,
                               String text, boolean storyReply) {
         InstagramAccount acc = igAccounts.findByIgUserId(igUserId).orElse(null);
-        if (acc == null || fromIgsid == null) return;
-
-        String channel = storyReply ? "STORY_REPLY" : "DM";
-        logInbound(acc.getUserId(), null, fromIgsid, channel, text);
-
-        // 1. Are we mid-flow, waiting on an answer to a question?
-        Optional<ConversationState> pending = findPendingState(acc.getId(), fromIgsid);
-        if (pending.isPresent()) {
-            captureAnswerAndAdvance(acc, pending.get(), fromIgsid, fromUsername, text);
+        if (acc == null) {
+            log.warn("No connected Instagram account for igUserId={} — connect the account in Settings",
+                    igUserId);
+            return;
+        }
+        if (fromIgsid == null) {
+            log.warn("Message event missing sender id (fromIgsid) for igUserId={}", igUserId);
             return;
         }
 
-        // 2. Otherwise match a DM automation, or a STORY_REPLY one for story replies.
-        for (Automation a : automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), channel, "ACTIVE")) {
-            if (matches(a, text)) {
-                startFlow(acc, a, fromIgsid, fromUsername);
-                break;
+        String channel = storyReply ? "STORY_REPLY" : "DM";
+
+        Optional<ConversationState> pending = findPendingState(acc.getId(), fromIgsid);
+        if (pending.isPresent()) {
+            ConversationState state = pending.get();
+            log.info("Handling {} reply for igAccountId={} from={} (awaiting field={})",
+                    channel, acc.getId(), fromIgsid, state.getAwaitingField());
+            logInbound(acc.getUserId(), null, fromIgsid, channel, text);
+            log.info("Resuming paused conversation for automation id={} at step order={} awaiting field={}",
+                    state.getAutomationId(), state.getCurrentStep(), state.getAwaitingField());
+            captureAnswerAndAdvance(acc, state, fromIgsid, fromUsername, text);
+            return;
+        }
+
+        log.info("Handling {} event for igAccountId={} from={} text=\"{}\"",
+                channel, acc.getId(), fromIgsid, truncate(text));
+        logInbound(acc.getUserId(), null, fromIgsid, channel, text);
+
+        List<Automation> candidates =
+                automations.findByIgAccountIdAndTypeAndStatus(acc.getId(), channel, "ACTIVE");
+        logCandidateCount(acc.getId(), channel, "ACTIVE", candidates.size());
+
+        boolean matched = false;
+        for (Automation a : candidates) {
+            if (!matches(a, text)) {
+                log.info("Skipping automation id={} name=\"{}\": keyword mismatch for text=\"{}\"",
+                        a.getId(), a.getName(), truncate(text));
+                continue;
             }
+            log.info("Selected automation id={} name=\"{}\"", a.getId(), a.getName());
+            startFlow(acc, a, fromIgsid, fromUsername);
+            matched = true;
+            break;
+        }
+        if (!matched && !candidates.isEmpty()) {
+            log.info("No automation matched after evaluating {} candidate(s)", candidates.size());
         }
     }
 
@@ -110,60 +164,98 @@ public class AutomationEngine {
     private void startFlow(InstagramAccount acc, Automation a, String igsid, String username) {
         upsertLead(acc.getUserId(), a.getId(), igsid, username);
 
-        // Ask-for-follow gate.
         if (a.isAskFollowEnabled()) {
             boolean follows = instagram.isFollower(acc.getPageAccessToken(), acc.getIgUserId(), igsid);
+            log.info("Follow-gate check for automation id={}: sender follows={}", a.getId(), follows);
             if (!follows) {
+                log.info("Sender does not follow — sending follow-gate message instead of flow for automation id={}",
+                        a.getId());
                 send(acc, a, igsid, a.getAskFollowMessage() != null
                         ? a.getAskFollowMessage()
                         : "Please follow us first, then reply here to unlock your link!");
                 return;
             }
         }
+        log.info("Starting flow for automation id={} name=\"{}\"", a.getId(), a.getName());
         runFromStep(acc, a, igsid, username, 0);
     }
 
     private void runFromStep(InstagramAccount acc, Automation a, String igsid, String username, int fromOrder) {
         List<FlowStep> flow = steps.findByAutomationIdOrderByStepOrderAsc(a.getId());
+        log.info("Running flow for automation id={} from step order={}, {} step(s) total",
+                a.getId(), fromOrder, flow.size());
+        if (flow.isEmpty()) {
+            log.warn("Automation id={} has an empty flow — nothing to send", a.getId());
+            clearState(acc.getId(), igsid, a.getId());
+            return;
+        }
+
         for (FlowStep step : flow) {
             if (step.getStepOrder() < fromOrder) continue;
+
+            log.info("Executing step order={} type={} for automation id={}",
+                    step.getStepOrder(), step.getStepType(), a.getId());
 
             switch (step.getStepType()) {
                 case "BUTTONS" -> sendButtons(acc, a, igsid, step);
                 case "QUESTION" -> {
-                    // Send the question, then pause and wait for a reply.
                     send(acc, a, igsid, step.getBody());
-                    saveState(acc.getId(), igsid, a.getId(), step.getStepOrder(),
-                            questionField(step));
+                    String awaiting = questionField(step);
+                    saveState(acc.getId(), igsid, a.getId(), step.getStepOrder(), awaiting);
+                    log.info("Pausing flow at step order={} awaiting field={} for automation id={}",
+                            step.getStepOrder(), awaiting, a.getId());
                     return;
                 }
                 default -> send(acc, a, igsid, step.getBody());
             }
         }
-        // Flow finished -> clear any lingering state.
+        log.info("Flow completed for automation id={}", a.getId());
         clearState(acc.getId(), igsid, a.getId());
     }
 
     private void captureAnswerAndAdvance(InstagramAccount acc, ConversationState state,
                                          String igsid, String username, String answer) {
         Automation a = automations.findById(state.getAutomationId()).orElse(null);
-        if (a == null) { states.delete(state); return; }
+        if (a == null) {
+            log.warn("Automation id={} no longer exists — discarding conversation state",
+                    state.getAutomationId());
+            states.delete(state);
+            return;
+        }
 
-        // Store the answer against the lead.
         FlowStep asked = steps.findByAutomationIdOrderByStepOrderAsc(a.getId()).stream()
                 .filter(s -> s.getStepOrder() == state.getCurrentStep())
                 .findFirst().orElse(null);
-        if (asked != null) {
+        if (asked == null) {
+            log.warn("Could not find step order={} for automation id={} — answer not stored",
+                    state.getCurrentStep(), a.getId());
+        } else {
             storeAnswer(acc.getUserId(), a.getId(), igsid, asked, answer);
+            log.info("Stored answer for field={} (length={}) for automation id={}",
+                    questionField(asked), answer != null ? answer.length() : 0, a.getId());
         }
 
-        // Continue from the next step.
         runFromStep(acc, a, igsid, username, state.getCurrentStep() + 1);
     }
 
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
+    private void logCandidateCount(Long igAccountId, String type, String status, int count) {
+        log.info("Found {} candidate automation(s) for igAccountId={} type={} status={}",
+                count, igAccountId, type, status);
+        if (count == 0) {
+            long total = automations.countByIgAccountId(igAccountId);
+            log.info("No matching automations — account has {} automation(s) in any type/status", total);
+        }
+    }
+
+    private static String truncate(String text) {
+        if (text == null) return "";
+        if (text.length() <= LOG_TEXT_MAX) return text;
+        return text.substring(0, LOG_TEXT_MAX) + "...";
+    }
+
     private boolean matches(Automation a, String text) {
         if (a.isMatchAny()) return true;
         if (text == null) return false;
@@ -177,10 +269,14 @@ public class AutomationEngine {
     }
 
     private void send(InstagramAccount acc, Automation a, String igsid, String text) {
-        if (text == null || text.isBlank()) return;
+        if (text == null || text.isBlank()) {
+            log.info("Skipping blank DM body for automation id={} recipient={}", a.getId(), igsid);
+            return;
+        }
         AppUser user = users.findById(acc.getUserId()).orElse(null);
         if (user != null && !usage.canSend(user)) {
-            log.warn("DM quota exceeded for user {} — skipping send", acc.getUserId());
+            log.warn("DM quota exceeded for user {} — skipping send (automation id={}, recipient={})",
+                    acc.getUserId(), a.getId(), igsid);
             logOutbound(acc.getUserId(), a.getId(), igsid, text, "FAILED");
             return;
         }
@@ -188,22 +284,34 @@ public class AutomationEngine {
             instagram.sendText(acc.getPageAccessToken(), igsid, text);
             usage.recordSend(acc.getUserId());
             logOutbound(acc.getUserId(), a.getId(), igsid, text, "SENT");
+            log.info("Sent DM to recipient={} automation id={} body=\"{}\"",
+                    igsid, a.getId(), truncate(text));
         } catch (Exception e) {
-            log.error("Failed to send DM", e);
+            log.error("Failed to send DM to recipient={} automation id={}", igsid, a.getId(), e);
             logOutbound(acc.getUserId(), a.getId(), igsid, text, "FAILED");
         }
     }
 
     private void sendButtons(InstagramAccount acc, Automation a, String igsid, FlowStep step) {
+        String body = step.getBody();
+        if (body == null || body.isBlank()) {
+            log.info("Skipping blank button body for automation id={} recipient={}", a.getId(), igsid);
+            return;
+        }
         AppUser user = users.findById(acc.getUserId()).orElse(null);
-        if (user != null && !usage.canSend(user)) return;
+        if (user != null && !usage.canSend(user)) {
+            log.warn("DM quota exceeded for user {} — skipping button send (automation id={}, recipient={})",
+                    acc.getUserId(), a.getId(), igsid);
+            return;
+        }
         try {
-            instagram.sendButtons(acc.getPageAccessToken(), igsid,
-                    step.getBody() != null ? step.getBody() : "Tap below:", step.getButtons());
+            instagram.sendButtons(acc.getPageAccessToken(), igsid, body, step.getButtons());
             usage.recordSend(acc.getUserId());
-            logOutbound(acc.getUserId(), a.getId(), igsid, step.getBody(), "SENT");
+            logOutbound(acc.getUserId(), a.getId(), igsid, body, "SENT");
+            log.info("Sent button DM to recipient={} automation id={} body=\"{}\"",
+                    igsid, a.getId(), truncate(body));
         } catch (Exception e) {
-            log.error("Failed to send buttons", e);
+            log.error("Failed to send buttons to recipient={} automation id={}", igsid, a.getId(), e);
         }
     }
 
@@ -211,7 +319,7 @@ public class AutomationEngine {
         try {
             instagram.replyToComment(acc.getPageAccessToken(), commentId, message);
         } catch (Exception e) {
-            log.error("Failed to reply to comment", e);
+            log.error("Failed to reply to comment {}", commentId, e);
         }
     }
 
@@ -254,8 +362,6 @@ public class AutomationEngine {
     }
 
     private Optional<ConversationState> findPendingState(Long igAccountId, String igsid) {
-        // Find any active automation (of any trigger type) with a waiting state
-        // for this follower — the follow-up answer always arrives as a DM.
         for (Automation a : automations.findByIgAccountIdAndStatus(igAccountId, "ACTIVE")) {
             var s = states.findByIgAccountIdAndIgUserIdAndAutomationId(igAccountId, igsid, a.getId());
             if (s.isPresent() && s.get().getAwaitingField() != null) return s;

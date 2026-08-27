@@ -134,6 +134,32 @@ class InstagramClientTest {
                         """));
 
         assertFalse(client.isFollower(ACCESS_TOKEN, IG_USER_ID, "igsid-1"));
+
+        String followWarn = logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .map(ILoggingEvent::getFormattedMessage)
+                .filter(msg -> msg.contains("Follow check failed due to Graph API error"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(followWarn.contains("not confirmed"));
+        assertTrue(followWarn.contains("OAuthException"));
+        assertLogDoesNotContainToken();
+    }
+
+    @Test
+    void isFollowerReturnsFalseWithoutApiFailureWarnWhenUserDoesNotFollow() {
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("{\"is_user_follow_business\":false}"));
+
+        assertFalse(client.isFollower(ACCESS_TOKEN, IG_USER_ID, "igsid-1"));
+
+        boolean hasFollowFailureWarn = logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(msg -> msg.contains("Follow check failed"));
+        assertFalse(hasFollowFailureWarn);
     }
 
     private void assertLogDoesNotContainToken() {

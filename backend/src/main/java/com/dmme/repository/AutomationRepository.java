@@ -12,4 +12,5 @@ public interface AutomationRepository extends JpaRepository<Automation, Long> {
     Optional<Automation> findByIdAndUserId(Long id, UUID userId);
     List<Automation> findByIgAccountIdAndTypeAndStatus(Long igAccountId, String type, String status);
     List<Automation> findByIgAccountIdAndStatus(Long igAccountId, String status);
+    long countByIgAccountId(Long igAccountId);
 }

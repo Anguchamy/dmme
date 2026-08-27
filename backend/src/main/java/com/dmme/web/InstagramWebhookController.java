@@ -11,12 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Meta webhook endpoint. Configure this URL in the Meta App dashboard:
@@ -178,50 +180,68 @@ public class InstagramWebhookController {
 
     @SuppressWarnings("unchecked")
     private void handleMessaging(String igUserId, Map<String, Object> m) {
-        Map<String, Object> sender = (Map<String, Object>) m.get("sender");
-        Map<String, Object> message = (Map<String, Object>) m.get("message");
-        if (sender == null || message == null) return;
-        if (Boolean.TRUE.equals(message.get("is_echo"))) return; // ignore our own outbound
+        MDC.put("correlationId", newCorrelationId());
+        try {
+            Map<String, Object> sender = (Map<String, Object>) m.get("sender");
+            Map<String, Object> message = (Map<String, Object>) m.get("message");
+            if (sender == null || message == null) return;
+            if (Boolean.TRUE.equals(message.get("is_echo"))) return;
 
-        String fromIgsid = String.valueOf(sender.get("id"));
-        String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
+            String fromIgsid = String.valueOf(sender.get("id"));
+            String text = message.get("text") != null ? String.valueOf(message.get("text")) : null;
 
-        // A reply to one of our stories arrives as a message with reply_to.story.
-        Map<String, Object> replyTo = (Map<String, Object>) message.get("reply_to");
-        boolean storyReply = replyTo != null && replyTo.get("story") != null;
+            Map<String, Object> replyTo = (Map<String, Object>) message.get("reply_to");
+            boolean storyReply = replyTo != null && replyTo.get("story") != null;
 
-        log.info("Message webhook: igUser={} from={} storyReply={} text={}",
-                igUserId, fromIgsid, storyReply, text);
-        engine.handleMessage(igUserId, fromIgsid, null, text, storyReply);
+            log.info("Message webhook: igUser={} from={} storyReply={} text={}",
+                    igUserId, fromIgsid, storyReply, truncateForLog(text));
+            engine.handleMessage(igUserId, fromIgsid, null, text, storyReply);
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void handleChange(String igUserId, Map<String, Object> change) {
-        String field = String.valueOf(change.get("field"));
-        // Post/reel comments -> COMMENT; live video comments -> LIVE.
-        String triggerType = switch (field) {
-            case "comments" -> "COMMENT";
-            case "live_comments" -> "LIVE";
-            default -> null;
-        };
-        if (triggerType == null) return;
+        MDC.put("correlationId", newCorrelationId());
+        try {
+            String field = String.valueOf(change.get("field"));
+            String triggerType = switch (field) {
+                case "comments" -> "COMMENT";
+                case "live_comments" -> "LIVE";
+                default -> null;
+            };
+            if (triggerType == null) return;
 
-        Map<String, Object> value = (Map<String, Object>) change.get("value");
-        if (value == null) return;
+            Map<String, Object> value = (Map<String, Object>) change.get("value");
+            if (value == null) return;
 
-        String commentId = String.valueOf(value.get("id"));
-        String text = value.get("text") != null ? String.valueOf(value.get("text")) : null;
+            String commentId = String.valueOf(value.get("id"));
+            String text = value.get("text") != null ? String.valueOf(value.get("text")) : null;
 
-        Map<String, Object> from = (Map<String, Object>) value.get("from");
-        String fromIgsid = from != null ? String.valueOf(from.get("id")) : null;
-        String fromUsername = from != null && from.get("username") != null
-                ? String.valueOf(from.get("username")) : null;
+            Map<String, Object> from = (Map<String, Object>) value.get("from");
+            String fromIgsid = from != null ? String.valueOf(from.get("id")) : null;
+            String fromUsername = from != null && from.get("username") != null
+                    ? String.valueOf(from.get("username")) : null;
 
-        Map<String, Object> media = (Map<String, Object>) value.get("media");
-        String mediaId = media != null ? String.valueOf(media.get("id")) : null;
+            Map<String, Object> media = (Map<String, Object>) value.get("media");
+            String mediaId = media != null ? String.valueOf(media.get("id")) : null;
 
-        log.info("{} webhook: igUser={} media={} from=@{} text={}",
-                triggerType, igUserId, mediaId, fromUsername, text);
-        engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
+            log.info("{} webhook: igUser={} media={} from=@{} text={}",
+                    triggerType, igUserId, mediaId, fromUsername, truncateForLog(text));
+            engine.handleComment(igUserId, mediaId, commentId, fromIgsid, fromUsername, text, triggerType);
+        } finally {
+            MDC.remove("correlationId");
+        }
+    }
+
+    private static String newCorrelationId() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private static String truncateForLog(String text) {
+        if (text == null) return "";
+        if (text.length() <= 80) return text;
+        return text.substring(0, 80) + "...";
     }
 }
