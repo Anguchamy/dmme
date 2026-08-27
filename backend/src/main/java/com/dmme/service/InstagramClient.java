@@ -1,8 +1,12 @@
 package com.dmme.service;
 
 import com.dmme.config.AppProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -18,14 +22,51 @@ import java.util.Map;
 @Service
 public class InstagramClient {
 
+    private static final Logger log = LoggerFactory.getLogger(InstagramClient.class);
+
     private final WebClient web;
     private final WebClient igWeb;
     private final AppProperties props;
 
     public InstagramClient(AppProperties props) {
         this.props = props;
-        this.web = WebClient.builder().baseUrl(props.getInstagram().getGraphBaseUrl()).build();
-        this.igWeb = WebClient.builder().baseUrl(props.getInstagram().getIgGraphBaseUrl()).build();
+        ExchangeFilterFunction errorFilter = graphErrorFilter();
+        this.web = WebClient.builder()
+                .baseUrl(props.getInstagram().getGraphBaseUrl())
+                .filter(errorFilter)
+                .build();
+        this.igWeb = WebClient.builder()
+                .baseUrl(props.getInstagram().getIgGraphBaseUrl())
+                .filter(errorFilter)
+                .build();
+    }
+
+    private static ExchangeFilterFunction graphErrorFilter() {
+        return (request, next) -> next.exchange(request).flatMap(response -> {
+            if (!response.statusCode().isError()) {
+                return Mono.just(response);
+            }
+            String path = request.url().getPath();
+            return response.bodyToMono(String.class)
+                    .defaultIfEmpty("")
+                    .flatMap(body -> {
+                        InstagramApiException ex = InstagramApiException.parse(response.statusCode(), path, body);
+                        log.warn(
+                                "Instagram Graph API error: status={} path={} type={} code={} subcode={} message=\"{}\" fbtrace_id={}",
+                                ex.getHttpStatus().value(),
+                                ex.getRequestPath(),
+                                orDash(ex.getGraphType()),
+                                orDash(ex.getGraphCode()),
+                                orDash(ex.getErrorSubcode()),
+                                ex.getGraphMessage() != null ? ex.getGraphMessage() : "",
+                                orDash(ex.getFbtraceId()));
+                        return Mono.error(ex);
+                    });
+        });
+    }
+
+    private static String orDash(Object value) {
+        return value != null ? String.valueOf(value) : "-";
     }
 
     /**
