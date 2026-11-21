@@ -12,29 +12,24 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Thin wrapper over the Meta Graph API for Instagram messaging + comments.
+ * Thin wrapper over the Instagram Graph API (Instagram Login) for messaging + comments.
  *
- * Uses the Send API on the connected Facebook Page. All calls require the
- * page access token obtained during the Instagram connect (OAuth) flow.
+ * Tokens from the Instagram Login OAuth flow are Instagram User access tokens and
+ * must be sent to {@code graph.instagram.com}, not {@code graph.facebook.com}.
  *
- * Docs: Instagram Messaging API (Messenger Platform) + Instagram Graph API.
+ * Docs: Instagram API with Instagram Login — Messaging + Comments.
  */
 @Service
 public class InstagramClient {
 
     private static final Logger log = LoggerFactory.getLogger(InstagramClient.class);
 
-    private final WebClient web;
     private final WebClient igWeb;
     private final AppProperties props;
 
     public InstagramClient(AppProperties props) {
         this.props = props;
         ExchangeFilterFunction errorFilter = graphErrorFilter();
-        this.web = WebClient.builder()
-                .baseUrl(props.getInstagram().getGraphBaseUrl())
-                .filter(errorFilter)
-                .build();
         this.igWeb = WebClient.builder()
                 .baseUrl(props.getInstagram().getIgGraphBaseUrl())
                 .filter(errorFilter)
@@ -165,7 +160,7 @@ public class InstagramClient {
     /** Check whether the given IGSID follows the connected account. */
     public boolean isFollower(String pageAccessToken, String igUserId, String igsid) {
         try {
-            Map<?, ?> res = web.get()
+            Map<?, ?> res = igWeb.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/" + igsid)
                             .queryParam("fields", "is_user_follow_business")
@@ -194,8 +189,9 @@ public class InstagramClient {
         }
     }
 
+    /** POST to Instagram Graph ({@code graph.instagram.com}) with an IG user access token. */
     private void post(String path, String accessToken, Map<String, Object> body) {
-        web.post()
+        igWeb.post()
                 .uri(uriBuilder -> uriBuilder.path(path)
                         .queryParam("access_token", accessToken).build())
                 .bodyValue(body)
