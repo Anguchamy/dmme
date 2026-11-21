@@ -44,6 +44,7 @@ export default function Settings() {
   const [err, setErr] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [params, setParams] = useSearchParams();
+  const showManualConnect = params.get("mode") === "test";
 
   const loadAccounts = () =>
     api
@@ -198,32 +199,34 @@ export default function Settings() {
         )}
       </div>
 
-      <details className="card">
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-          Advanced: connect manually with a token
-        </summary>
-        <p style={{ color: "var(--muted)", fontSize: 14 }}>
-          For development/testing only. Paste an Instagram user id and a long-lived access token
-          obtained outside the app.
-        </p>
-        <div className="field">
-          <label>Instagram user ID</label>
-          <input value={connect.igUserId} onChange={(e) => setConnect({ ...connect, igUserId: e.target.value })} />
-        </div>
-        <div className="field">
-          <label>Instagram username</label>
-          <input value={connect.igUsername} onChange={(e) => setConnect({ ...connect, igUsername: e.target.value })} />
-        </div>
-        <div className="field">
-          <label>Facebook Page ID (optional)</label>
-          <input value={connect.facebookPageId} onChange={(e) => setConnect({ ...connect, facebookPageId: e.target.value })} />
-        </div>
-        <div className="field">
-          <label>Access token</label>
-          <input value={connect.pageAccessToken} onChange={(e) => setConnect({ ...connect, pageAccessToken: e.target.value })} />
-        </div>
-        <button className="btn btn-ghost btn-sm" onClick={connectManual}>Connect manually</button>
-      </details>
+      {showManualConnect && (
+        <details className="card" open>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+            Advanced: connect manually with a token
+          </summary>
+          <p style={{ color: "var(--muted)", fontSize: 14 }}>
+            For development/testing only. Paste an Instagram user id and a long-lived access token
+            obtained outside the app.
+          </p>
+          <div className="field">
+            <label>Instagram user ID</label>
+            <input value={connect.igUserId} onChange={(e) => setConnect({ ...connect, igUserId: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Instagram username</label>
+            <input value={connect.igUsername} onChange={(e) => setConnect({ ...connect, igUsername: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Facebook Page ID (optional)</label>
+            <input value={connect.facebookPageId} onChange={(e) => setConnect({ ...connect, facebookPageId: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Access token</label>
+            <input value={connect.pageAccessToken} onChange={(e) => setConnect({ ...connect, pageAccessToken: e.target.value })} />
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={connectManual}>Connect manually</button>
+        </details>
+      )}
     </div>
   );
 }

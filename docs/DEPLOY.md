@@ -52,6 +52,11 @@ Environment variables (Pages -> Settings -> Environment variables):
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
 | `VITE_API_BASE_URL` | `https://dmme-mntq.onrender.com` (backend root only — do **not** append `/api`) |
 
-After deploy, confirm the backend's `CORS_ORIGINS` includes `https://dmme.co.in`, and add that
-URL to Supabase → Authentication → URL Configuration (Site URL + redirect allow-list) so
-login redirects work.
+After deploy, confirm the backend's `CORS_ORIGINS` includes `https://dmme.co.in`, and add these
+URLs to Supabase → Authentication → URL Configuration so login / email-confirm redirects work:
+
+- **Site URL:** `https://dmme.co.in`
+- **Redirect URLs allow-list:** `https://dmme.co.in/login`, `https://dmme.co.in/app`, `http://localhost:5173/login`, `http://localhost:5173/app`
+
+Signup confirmation emails use `emailRedirectTo` → `/login`. If a user lands on `/` with an
+auth hash (legacy Site URL links), the landing page forwards them to `/login`.

@@ -136,9 +136,15 @@ export default function AutomationBuilder() {
 
   async function save() {
     setErr("");
+    const name = (form.name || "").trim();
+    if (!name) {
+      setErr("Please enter a title for this automation.");
+      return;
+    }
     setBusy(true);
     const payload = {
       ...form,
+      name,
       keywords: form.matchAny ? [] : form.keywords.filter((k) => k.keyword.trim()),
       steps: form.steps.map((s, idx) => ({ ...s, stepOrder: idx })),
     };
@@ -165,7 +171,9 @@ export default function AutomationBuilder() {
           className="builder-title"
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
-          placeholder="Untitled"
+          placeholder="Automation title *"
+          aria-required="true"
+          required
         />
         <div className="builder-bar-right">
           <label className="status-toggle-label">

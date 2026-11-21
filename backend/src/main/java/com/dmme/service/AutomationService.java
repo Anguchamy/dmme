@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -80,7 +81,11 @@ public class AutomationService {
     }
 
     private void apply(Automation a, AutomationUpsert req) {
-        a.setName(req.name());
+        String name = req.name() != null ? req.name().trim() : "";
+        if (name.isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Automation title is required");
+        }
+        a.setName(name);
         a.setType(req.type() != null ? req.type() : "COMMENT");
         a.setStatus(req.status() != null ? req.status() : "DRAFT");
         a.setIgAccountId(req.igAccountId());

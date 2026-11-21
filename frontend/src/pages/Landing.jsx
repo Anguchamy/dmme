@@ -3,6 +3,22 @@ import { Link } from "react-router-dom";
 import { Logo, LogoMark } from "../components/Logo";
 import { api } from "../lib/api";
 
+/** Supabase email confirm / recovery links land on Site URL with a hash. Forward to /login. */
+function useForwardAuthHash() {
+  useEffect(() => {
+    const hash = window.location.hash || "";
+    if (
+      hash.includes("error=") ||
+      hash.includes("access_token") ||
+      hash.includes("type=signup") ||
+      hash.includes("type=recovery") ||
+      hash.includes("type=email")
+    ) {
+      window.location.replace(`/login${hash}`);
+    }
+  }, []);
+}
+
 const CREATORS = [
   { handle: "@elementec", followers: "1.2M+ Followers", tag: "Travel", img: "https://picsum.photos/seed/dmme-travel/300/420" },
   { handle: "@ezsnippet", followers: "3.3M+ Followers", tag: "Education", img: "https://picsum.photos/seed/dmme-edu/300/420" },
@@ -477,6 +493,7 @@ function SplitSection({ reverse, title, text, variant }) {
 
 export default function Landing() {
   const [plans, setPlans] = useState([]);
+  useForwardAuthHash();
 
   useEffect(() => {
     api.get("/api/plans").then(setPlans).catch(() => {});

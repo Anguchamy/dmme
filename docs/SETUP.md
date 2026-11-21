@@ -26,7 +26,9 @@ End-to-end instructions to run the backend, frontend, and connect Supabase, Meta
 3. **JWT secret:** Project Settings → API → **JWT Secret**. The backend uses this to verify user tokens (HS256).
 4. **Anon key + URL:** Project Settings → API. The frontend needs these.
 5. **Auth providers:** Authentication → Providers. Enable Email, and optionally Google
-   (add your OAuth client). Set the Site URL to `http://localhost:5173` for local dev.
+   (add your OAuth client). Set the Site URL to `http://localhost:5173` for local dev,
+   and add `http://localhost:5173/login` + `http://localhost:5173/app` to Redirect URLs
+   (production: `https://dmme.co.in` Site URL + `/login` and `/app` on the allow-list).
 
 Flyway creates all tables automatically on first backend start — you do **not** run SQL manually.
 

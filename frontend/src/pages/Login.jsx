@@ -70,9 +70,40 @@ function IgIcon() {
   );
 }
 
+function EyeIcon({ open }) {
+  if (open) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M10.6 10.7a2 2 0 0 0 2.8 2.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M9.9 5.2A10.5 10.5 0 0 1 12 5c5 0 9.3 3.1 11 7.5a12.3 12.3 0 0 1-4.2 5.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M6.7 6.7A12.3 12.3 0 0 0 1 12.5C2.7 16.9 7 20 12 20c1.4 0 2.7-.2 4-.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M1 12.5C2.7 8.1 7 5 12 5s9.3 3.1 11 7.5c-1.7 4.4-6 7.5-11 7.5S2.7 16.9 1 12.5z" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function authHashErrorMessage(params) {
+  const code = params.get("error_code");
+  const desc = (params.get("error_description") || "").replace(/\+/g, " ");
+  if (code === "otp_expired") {
+    return "This email link is invalid or has expired. Request a new confirmation email, or sign up again.";
+  }
+  if (desc) return desc;
+  if (params.get("error")) return "Authentication link failed. Please try again.";
+  return null;
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState("signin"); // signin | signup
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -84,6 +115,18 @@ export default function Login() {
     if (session) navigate("/app", { replace: true });
   }, [session, navigate]);
 
+  // Surface Supabase email-link failures (otp_expired, etc.) from the URL hash.
+  useEffect(() => {
+    const raw = window.location.hash?.replace(/^#/, "");
+    if (!raw) return;
+    const params = new URLSearchParams(raw);
+    const message = authHashErrorMessage(params);
+    if (message) {
+      setErr(message);
+      window.history.replaceState(null, "", "/login");
+    }
+  }, []);
+
   async function submit(e) {
     e.preventDefault();
     setErr("");
@@ -91,7 +134,11 @@ export default function Login() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/login` },
+        });
         if (error) throw error;
         setMsg("Check your email to confirm your account, then sign in.");
         setMode("signin");
@@ -154,16 +201,29 @@ export default function Login() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
-          <input
-            type="password"
-            className="login-input"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="password-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              className="login-input"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              tabIndex={-1}
+            >
+              <EyeIcon open={showPassword} />
+            </button>
+          </div>
 
           {mode === "signin" && (
             <div className="forgot">
