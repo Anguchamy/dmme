@@ -66,6 +66,13 @@ public class AutomationEngine {
             log.warn("Comment event missing sender id (fromIgsid) for igUserId={}", igUserId);
             return;
         }
+        // Own-account comments (and our public replies) use the professional account id,
+        // which is not a messaging recipient — DMing it returns "requested user cannot be found".
+        if (fromIgsid.equals(igUserId)) {
+            log.info("Ignoring self-comment from connected account igUserId={} text=\"{}\"",
+                    igUserId, truncate(text));
+            return;
+        }
 
         String type = (triggerType != null) ? triggerType : "COMMENT";
         log.info("Handling {} event for igAccountId={} from={} text=\"{}\"",

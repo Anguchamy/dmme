@@ -250,6 +250,20 @@ class AutomationEngineTest {
         assertFalse(allLogs().contains("user@secret"));
     }
 
+    @Test
+    void selfCommentIsIgnoredAndDoesNotStartFlow() {
+        InstagramAccount acc = connectedAccount();
+        when(igAccounts.findByIgUserId(IG_USER_ID)).thenReturn(Optional.of(acc));
+
+        engine.handleComment(IG_USER_ID, "media-1", "comment-1", IG_USER_ID, "dm____________me",
+                "Thanks! Check your DMs", "COMMENT");
+
+        assertTrue(hasInfo("Ignoring self-comment from connected account igUserId=" + IG_USER_ID));
+        verifyNoInteractions(automations);
+        verify(instagram, never()).sendText(any(), any(), any());
+        verify(instagram, never()).replyToComment(any(), any(), any());
+    }
+
     private InstagramAccount connectedAccount() {
         InstagramAccount acc = new InstagramAccount();
         acc.setId(1L);
