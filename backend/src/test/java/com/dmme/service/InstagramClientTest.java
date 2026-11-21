@@ -126,6 +126,24 @@ class InstagramClientTest {
     }
 
     @Test
+    void sendPrivateReplyPostsCommentIdAndReturnsRecipientId() throws Exception {
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("{\"recipient_id\":\"igsid-from-comment\",\"message_id\":\"mid.abc\"}"));
+
+        String recipient = client.sendPrivateReply(ACCESS_TOKEN, "comment-99", "Thanks!");
+
+        assertEquals("igsid-from-comment", recipient);
+        var recorded = server.takeRequest();
+        assertEquals("/me/messages?access_token=" + ACCESS_TOKEN, recorded.getPath());
+        String body = recorded.getBody().readUtf8();
+        assertTrue(body.contains("\"comment_id\":\"comment-99\""));
+        assertTrue(body.contains("\"text\":\"Thanks!\""));
+        assertFalse(body.contains("\"id\":\""));
+    }
+
+    @Test
     void isFollowerSwallowsAuthErrorsAndReturnsFalse() {
         server.enqueue(new MockResponse()
                 .setResponseCode(400)

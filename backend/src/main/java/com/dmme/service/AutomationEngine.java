@@ -100,7 +100,7 @@ public class AutomationEngine {
             if (a.getPublicReply() != null && !a.getPublicReply().isBlank() && commentId != null) {
                 safeReply(acc, commentId, a.getPublicReply());
             }
-            startFlow(acc, a, fromIgsid, fromUsername);
+            startFlow(acc, a, fromIgsid, fromUsername, commentId);
             matched = true;
             break;
         }
@@ -156,7 +156,7 @@ public class AutomationEngine {
                 continue;
             }
             log.info("Selected automation id={} name=\"{}\"", a.getId(), a.getName());
-            startFlow(acc, a, fromIgsid, fromUsername);
+            startFlow(acc, a, fromIgsid, fromUsername, null);
             matched = true;
             break;
         }
@@ -168,7 +168,8 @@ public class AutomationEngine {
     // ---------------------------------------------------------------------
     // Flow execution
     // ---------------------------------------------------------------------
-    private void startFlow(InstagramAccount acc, Automation a, String igsid, String username) {
+    private void startFlow(InstagramAccount acc, Automation a, String igsid, String username,
+                           String commentId) {
         upsertLead(acc.getUserId(), a.getId(), igsid, username);
 
         if (a.isAskFollowEnabled()) {
@@ -179,15 +180,20 @@ public class AutomationEngine {
                         a.getId());
                 send(acc, a, igsid, a.getAskFollowMessage() != null
                         ? a.getAskFollowMessage()
-                        : "Please follow us first, then reply here to unlock your link!");
+                        : "Please follow us first, then reply here to unlock your link!", commentId);
                 return;
             }
         }
         log.info("Starting flow for automation id={} name=\"{}\"", a.getId(), a.getName());
-        runFromStep(acc, a, igsid, username, 0);
+        runFromStep(acc, a, igsid, username, 0, commentId);
     }
 
     private void runFromStep(InstagramAccount acc, Automation a, String igsid, String username, int fromOrder) {
+        runFromStep(acc, a, igsid, username, fromOrder, null);
+    }
+
+    private void runFromStep(InstagramAccount acc, Automation a, String igsid, String username,
+                             int fromOrder, String commentId) {
         List<FlowStep> flow = steps.findByAutomationIdOrderByStepOrderAsc(a.getId());
         log.info("Running flow for automation id={} from step order={}, {} step(s) total",
                 a.getId(), fromOrder, flow.size());
@@ -197,6 +203,8 @@ public class AutomationEngine {
             return;
         }
 
+        // Meta allows only one private reply per comment; use it for the first outbound only.
+        String privateReplyCommentId = commentId;
         for (FlowStep step : flow) {
             if (step.getStepOrder() < fromOrder) continue;
 
@@ -204,16 +212,28 @@ public class AutomationEngine {
                     step.getStepOrder(), step.getStepType(), a.getId());
 
             switch (step.getStepType()) {
-                case "BUTTONS" -> sendButtons(acc, a, igsid, step);
+                case "BUTTONS" -> {
+                    if (privateReplyCommentId != null) {
+                        // Private reply is text-only; send body as the opening DM.
+                        send(acc, a, igsid, step.getBody(), privateReplyCommentId);
+                        privateReplyCommentId = null;
+                    } else {
+                        sendButtons(acc, a, igsid, step);
+                    }
+                }
                 case "QUESTION" -> {
-                    send(acc, a, igsid, step.getBody());
+                    send(acc, a, igsid, step.getBody(), privateReplyCommentId);
+                    privateReplyCommentId = null;
                     String awaiting = questionField(step);
                     saveState(acc.getId(), igsid, a.getId(), step.getStepOrder(), awaiting);
                     log.info("Pausing flow at step order={} awaiting field={} for automation id={}",
                             step.getStepOrder(), awaiting, a.getId());
                     return;
                 }
-                default -> send(acc, a, igsid, step.getBody());
+                default -> {
+                    send(acc, a, igsid, step.getBody(), privateReplyCommentId);
+                    privateReplyCommentId = null;
+                }
             }
         }
         log.info("Flow completed for automation id={}", a.getId());
@@ -276,6 +296,10 @@ public class AutomationEngine {
     }
 
     private void send(InstagramAccount acc, Automation a, String igsid, String text) {
+        send(acc, a, igsid, text, null);
+    }
+
+    private void send(InstagramAccount acc, Automation a, String igsid, String text, String commentId) {
         if (text == null || text.isBlank()) {
             log.info("Skipping blank DM body for automation id={} recipient={}", a.getId(), igsid);
             return;
@@ -288,13 +312,27 @@ public class AutomationEngine {
             return;
         }
         try {
-            instagram.sendText(acc.getPageAccessToken(), igsid, text);
-            usage.recordSend(acc.getUserId());
-            logOutbound(acc.getUserId(), a.getId(), igsid, text, "SENT");
-            log.info("Sent DM to recipient={} automation id={} body=\"{}\"",
-                    igsid, a.getId(), truncate(text));
+            if (commentId != null && !commentId.isBlank()) {
+                String resolvedIgsid = instagram.sendPrivateReply(
+                        acc.getPageAccessToken(), commentId, text);
+                usage.recordSend(acc.getUserId());
+                String logRecipient = resolvedIgsid != null ? resolvedIgsid : igsid;
+                logOutbound(acc.getUserId(), a.getId(), logRecipient, text, "SENT");
+                log.info("Sent private reply for commentId={} recipient={} automation id={} body=\"{}\"",
+                        commentId, logRecipient, a.getId(), truncate(text));
+                if (resolvedIgsid != null && !resolvedIgsid.equals(igsid)) {
+                    upsertLead(acc.getUserId(), a.getId(), resolvedIgsid, null);
+                }
+            } else {
+                instagram.sendText(acc.getPageAccessToken(), igsid, text);
+                usage.recordSend(acc.getUserId());
+                logOutbound(acc.getUserId(), a.getId(), igsid, text, "SENT");
+                log.info("Sent DM to recipient={} automation id={} body=\"{}\"",
+                        igsid, a.getId(), truncate(text));
+            }
         } catch (Exception e) {
-            log.error("Failed to send DM to recipient={} automation id={}", igsid, a.getId(), e);
+            log.error("Failed to send DM to recipient={} commentId={} automation id={}",
+                    igsid, commentId, a.getId(), e);
             logOutbound(acc.getUserId(), a.getId(), igsid, text, "FAILED");
         }
     }

@@ -125,6 +125,30 @@ public class InstagramClient {
     }
 
     /**
+     * Private reply to a commenter via {@code recipient.comment_id}.
+     * Required for comment→DM: comment webhook {@code from.id} is not always a valid
+     * messaging IGSID; Meta resolves the recipient from the comment id instead.
+     *
+     * @return the commenter's IGSID from the API response, or null if absent
+     */
+    @SuppressWarnings("unchecked")
+    public String sendPrivateReply(String pageAccessToken, String commentId, String text) {
+        Map<String, Object> payload = Map.of(
+                "recipient", Map.of("comment_id", commentId),
+                "message", Map.of("text", text)
+        );
+        Map<?, ?> res = igWeb.post()
+                .uri(uriBuilder -> uriBuilder.path("/me/messages")
+                        .queryParam("access_token", pageAccessToken).build())
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+        if (res == null || res.get("recipient_id") == null) return null;
+        return String.valueOf(res.get("recipient_id"));
+    }
+
+    /**
      * Send a button template DM. Buttons are [{title,url}] pairs rendered as
      * web_url buttons in a generic/button template.
      */
@@ -190,8 +214,8 @@ public class InstagramClient {
     }
 
     /** POST to Instagram Graph ({@code graph.instagram.com}) with an IG user access token. */
-    private void post(String path, String accessToken, Map<String, Object> body) {
-        igWeb.post()
+    private String post(String path, String accessToken, Map<String, Object> body) {
+        return igWeb.post()
                 .uri(uriBuilder -> uriBuilder.path(path)
                         .queryParam("access_token", accessToken).build())
                 .bodyValue(body)

@@ -264,6 +264,44 @@ class AutomationEngineTest {
         verify(instagram, never()).replyToComment(any(), any(), any());
     }
 
+    @Test
+    void commentMatchSendsPrivateReplyViaCommentId() {
+        InstagramAccount acc = connectedAccount();
+        Automation automation = new Automation();
+        automation.setId(11L);
+        automation.setUserId(USER_ID);
+        automation.setIgAccountId(1L);
+        automation.setName("App Review comment test");
+        automation.setType("COMMENT");
+        automation.setStatus("ACTIVE");
+        automation.setMatchAny(true);
+        automation.setIgMediaId("media-1");
+
+        FlowStep step = new FlowStep();
+        step.setStepOrder(1);
+        step.setStepType("TEXT");
+        step.setBody("Here is your link");
+
+        when(igAccounts.findByIgUserId(IG_USER_ID)).thenReturn(Optional.of(acc));
+        when(automations.findByIgAccountIdAndTypeAndStatus(1L, "COMMENT", "ACTIVE"))
+                .thenReturn(List.of(automation));
+        when(steps.findByAutomationIdOrderByStepOrderAsc(11L)).thenReturn(List.of(step));
+        when(logs.save(any(MessageLog.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(leads.findByUserIdAndAutomationIdAndIgUserId(eq(USER_ID), eq(11L), any()))
+                .thenReturn(Optional.empty());
+        when(leads.save(any(Lead.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(users.findById(USER_ID)).thenReturn(Optional.of(new AppUser()));
+        when(usage.canSend(any())).thenReturn(true);
+        when(instagram.sendPrivateReply(ACCESS_TOKEN, "comment-99", "Here is your link"))
+                .thenReturn("resolved-igsid");
+
+        engine.handleComment(IG_USER_ID, "media-1", "comment-99", FROM_IGSID, "financewithveera",
+                "review", "COMMENT");
+
+        verify(instagram).sendPrivateReply(ACCESS_TOKEN, "comment-99", "Here is your link");
+        verify(instagram, never()).sendText(any(), any(), any());
+    }
+
     private InstagramAccount connectedAccount() {
         InstagramAccount acc = new InstagramAccount();
         acc.setId(1L);
