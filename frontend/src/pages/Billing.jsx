@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { SectionLoader } from "../components/Loader";
+import { usePageLoading } from "../context/LoadingContext";
 import Tilt from "../components/Tilt";
 
 export default function Billing() {
@@ -8,6 +8,7 @@ export default function Billing() {
   const [me, setMe] = useState(null);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  usePageLoading(loading, "Loading billing…");
 
   const load = () => {
     setLoading(true);
@@ -48,6 +49,8 @@ export default function Billing() {
   const price = (p) =>
     p.priceMinor === 0 ? "Free" : `₹${(p.priceMinor / 100).toLocaleString("en-IN")}/mo`;
 
+  if (loading) return null;
+
   return (
     <div>
       <div className="page-head">
@@ -60,9 +63,6 @@ export default function Billing() {
       </div>
       {msg && <div className="banner banner-ok">{msg}</div>}
 
-      {loading ? (
-        <SectionLoader label="Loading plans…" />
-      ) : (
       <div className="pricing" style={{ marginTop: 8 }}>
         {plans.map((p) => {
           const current = me?.planCode === p.code;
@@ -87,7 +87,6 @@ export default function Billing() {
           );
         })}
       </div>
-      )}
     </div>
   );
 }

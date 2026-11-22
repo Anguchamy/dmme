@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
+import { usePageLoading } from "../context/LoadingContext";
 import UpgradeBanner from "../components/UpgradeBanner";
 
 function InstagramGlyph() {
@@ -43,21 +44,31 @@ export default function Settings() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [params, setParams] = useSearchParams();
   const showManualConnect = params.get("mode") === "test";
+  usePageLoading(loading, "Loading settings…");
 
   const loadAccounts = () =>
     api
       .get("/api/instagram/accounts")
       .then((d) => setAccounts(Array.isArray(d) ? d : []))
-      .catch(() => {});
+      .catch(() => []);
 
   useEffect(() => {
-    api.get("/api/me").then((m) => {
-      setMe(m);
-      setFullName(m.fullName || "");
+    let cancelled = false;
+    Promise.all([
+      api.get("/api/me").catch(() => null),
+      loadAccounts(),
+    ]).then(([m]) => {
+      if (cancelled) return;
+      if (m) {
+        setMe(m);
+        setFullName(m.fullName || "");
+      }
+      setLoading(false);
     });
-    loadAccounts();
+    return () => { cancelled = true; };
   }, []);
 
   // Surface the outcome of the Instagram OAuth redirect, then clean the URL.
@@ -125,6 +136,8 @@ export default function Settings() {
       setErr(e.message || "Could not enable live triggers.");
     }
   }
+
+  if (loading) return null;
 
   return (
     <div style={{ maxWidth: 680 }}>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useActiveAccount } from "../context/ActiveAccountContext";
+import { useLoading } from "../context/LoadingContext";
 import { api } from "../lib/api";
 import { LogoMark } from "../components/Logo";
 import Backdrop3D from "../components/Backdrop3D";
@@ -108,6 +109,7 @@ function Hamburger() {
 
 export default function DashboardLayout() {
   const { signOut } = useAuth();
+  const { runWithLoader } = useLoading();
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -134,8 +136,10 @@ export default function DashboardLayout() {
   }, [me]);
 
   async function logout() {
-    await signOut();
-    navigate("/", { replace: true });
+    await runWithLoader(async () => {
+      await signOut();
+      navigate("/", { replace: true });
+    }, "Signing out…");
   }
 
   const isFree = !me?.planCode || me.planCode === "FREE";

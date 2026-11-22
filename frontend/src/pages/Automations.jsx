@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useActiveAccount } from "../context/ActiveAccountContext";
+import { usePageLoading } from "../context/LoadingContext";
 import UpgradeBanner from "../components/UpgradeBanner";
-import { TableSkeleton } from "../components/Loader";
 
 function relTime(iso) {
   if (!iso) return "—";
@@ -63,6 +63,7 @@ export default function Automations() {
   const [perPage, setPerPage] = useState(10);
   const navigate = useNavigate();
   const { activeAccountId, activeAccount } = useActiveAccount();
+  usePageLoading(loading, "Loading automations…");
 
   const load = () =>
     api.get("/api/automations").then((d) => {
@@ -71,6 +72,7 @@ export default function Automations() {
     });
 
   useEffect(() => {
+    setLoading(true);
     load().catch(() => setLoading(false));
   }, []);
 
@@ -96,6 +98,8 @@ export default function Automations() {
   const totalPages = Math.max(1, Math.ceil(scoped.length / perPage));
   const pageItems = scoped.slice((page - 1) * perPage, page * perPage);
 
+  if (loading) return null;
+
   return (
     <div>
       <UpgradeBanner />
@@ -112,9 +116,7 @@ export default function Automations() {
         <button className="btn btn-primary" onClick={() => navigate("/app/automations/new")}>+ Create</button>
       </div>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={4} />
-      ) : scoped.length === 0 ? (
+      {scoped.length === 0 ? (
         <div className="empty-card">
           <div className="empty-icon"><ImageGlyph /></div>
           <h3>No automations yet</h3>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useActiveAccount } from "../context/ActiveAccountContext";
+import { usePageLoading } from "../context/LoadingContext";
 import { IconComment, IconReply, IconFunnel, IconGrowth, IconCheck } from "../components/DashIcons";
 import UpgradeBanner from "../components/UpgradeBanner";
 import Tilt from "../components/Tilt";
@@ -28,23 +29,28 @@ export default function Overview() {
   const [summary, setSummary] = useState(null);
   const [me, setMe] = useState(null);
   const [automationCount, setAutomationCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { accounts, activeAccountId, loading: accountsLoading } = useActiveAccount();
+  usePageLoading(loading || accountsLoading, "Loading dashboard…");
 
   useEffect(() => {
-    api.get("/api/analytics/summary").then(setSummary).catch(() => {});
-    api.get("/api/me").then(setMe).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    api.get("/api/automations")
-      .then((d) => {
-        const list = Array.isArray(d) ? d : [];
-        const scoped = activeAccountId ? list.filter((a) => a.igAccountId === activeAccountId) : list;
-        setAutomationCount(scoped.length);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    Promise.all([
+      api.get("/api/analytics/summary").catch(() => null),
+      api.get("/api/me").catch(() => null),
+      api.get("/api/automations").catch(() => []),
+    ]).then(([sum, profile, autos]) => {
+      if (cancelled) return;
+      setSummary(sum);
+      setMe(profile);
+      const list = Array.isArray(autos) ? autos : [];
+      const scoped = activeAccountId ? list.filter((a) => a.igAccountId === activeAccountId) : list;
+      setAutomationCount(scoped.length);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
   }, [activeAccountId]);
 
   const notConnected = !accountsLoading && accounts.length === 0;
@@ -61,6 +67,8 @@ export default function Overview() {
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const progressPct = Math.round((doneCount / steps.length) * 100);
+
+  if (loading || accountsLoading) return null;
 
   return (
     <div className="overview">

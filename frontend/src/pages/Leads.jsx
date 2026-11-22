@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { supabase } from "../lib/supabase";
+import { usePageLoading } from "../context/LoadingContext";
 import UpgradeBanner from "../components/UpgradeBanner";
-import { TableSkeleton } from "../components/Loader";
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  usePageLoading(loading, "Loading contacts…");
 
   useEffect(() => {
     api.get("/api/leads").then((d) => {
@@ -16,9 +16,9 @@ export default function Leads() {
   }, []);
 
   async function exportCsv() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const token = api.getAccessToken();
     const res = await fetch(`${api.baseUrl}/api/leads/export`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -28,6 +28,8 @@ export default function Leads() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  if (loading) return null;
 
   return (
     <div>
@@ -41,9 +43,7 @@ export default function Leads() {
         {leads.length > 0 && <button className="btn btn-ghost" onClick={exportCsv}>Export CSV</button>}
       </div>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : leads.length === 0 ? (
+      {leads.length === 0 ? (
         <div className="empty-card">
           <div className="empty-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b6b0c6" strokeWidth="1.8"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" /></svg>

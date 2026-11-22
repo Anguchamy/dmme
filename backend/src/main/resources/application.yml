@@ -32,6 +32,8 @@ app:
     # HS256 JWT secret from Supabase project settings (API > JWT Secret)
     jwt-secret: ${SUPABASE_JWT_SECRET:changeme-supabase-jwt-secret}
     project-url: ${SUPABASE_URL:https://your-project.supabase.co}
+    # Anon key stays on the server — frontend calls /api/auth/* instead of Supabase directly
+    anon-key: ${SUPABASE_ANON_KEY:}
   instagram:
     app-id: ${INSTAGRAM_APP_ID:${META_APP_ID:}}
     app-secret: ${INSTAGRAM_APP_SECRET:${META_APP_SECRET:}}

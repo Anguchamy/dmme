@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
+import { usePageLoading } from "../context/LoadingContext";
 import { Logo } from "../components/Logo";
 
 function ChatBoltIcon() {
@@ -29,6 +30,7 @@ export default function InstagramCallback() {
   const [account, setAccount] = useState("your account");
   const [errorMsg, setErrorMsg] = useState("");
   const ran = useRef(false);
+  usePageLoading(state === "loading", "Connecting Instagram…");
 
   useEffect(() => {
     if (ran.current) return; // guard against React StrictMode double-invoke

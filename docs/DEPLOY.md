@@ -19,7 +19,8 @@ Set these env vars in Render (all are `sync:false` in the blueprint, so add them
 | `DB_USER` | `postgres` |
 | `DB_PASSWORD` | Supabase DB password |
 | `SUPABASE_JWT_SECRET` | Supabase -> Settings -> API -> JWT Secret |
-| `SUPABASE_URL` | `https://<project>.supabase.co` |
+| `SUPABASE_URL` | Project root `https://<project>.supabase.co` (a trailing `/rest/v1` is OK — the backend strips it for Auth) |
+| `SUPABASE_ANON_KEY` | Supabase -> Settings -> API -> `anon` `public` (server-only; never put this on the frontend) |
 | `META_APP_ID`, `META_APP_SECRET` | **Instagram app ID / secret** from Instagram product → API setup with Instagram login (OAuth only — not the top-level Meta App ID/Secret) |
 | `META_WEBHOOK_APP_SECRET` | **Top-level Meta App Secret** from App settings → Basic — used to verify `X-Hub-Signature-256` on webhook POSTs (falls back to `META_APP_SECRET` if unset) |
 | `META_WEBHOOK_VERIFY_TOKEN` | random string; must match the verify token in Meta Webhooks |
@@ -48,9 +49,10 @@ Environment variables (Pages -> Settings -> Environment variables):
 
 | Var | Value |
 | --- | --- |
-| `VITE_SUPABASE_URL` | `https://<project>.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
 | `VITE_API_BASE_URL` | `https://dmme-mntq.onrender.com` (backend root only — do **not** append `/api`) |
+
+Remove any old `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from Pages — auth goes through
+`/api/auth/*` on the backend so Supabase keys are not shipped to the browser.
 
 After deploy, confirm the backend's `CORS_ORIGINS` includes `https://dmme.co.in`, and add these
 URLs to Supabase → Authentication → URL Configuration so login / email-confirm redirects work:

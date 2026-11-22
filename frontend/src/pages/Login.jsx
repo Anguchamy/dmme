@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { authApi } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useLoading, usePageLoading } from "../context/LoadingContext";
 import { Logo } from "../components/Logo";
 import Backdrop3D from "../components/Backdrop3D";
+import { authErrorFromHash } from "../lib/session";
+import { createCodeChallenge, createCodeVerifier, storeCodeVerifier } from "../lib/pkce";
 
 const CREATORS = [
   { handle: "@hardikpandyaa93", followers: "1M+ Followers", tag: "Lifestyle", img: "https://picsum.photos/seed/dmme-lifestyle/300/420" },
@@ -36,7 +39,6 @@ function CreatorCard({ c }) {
 }
 
 function MarqueeRow({ items, reverse }) {
-  // Duplicate the items so the track can loop seamlessly.
   const loop = [...items, ...items];
   return (
     <div className={`marquee-row${reverse ? " reverse" : ""}`}>
@@ -89,38 +91,27 @@ function EyeIcon({ open }) {
   );
 }
 
-function authHashErrorMessage(params) {
-  const code = params.get("error_code");
-  const desc = (params.get("error_description") || "").replace(/\+/g, " ");
-  if (code === "otp_expired") {
-    return "This email link is invalid or has expired. Request a new confirmation email, or sign up again.";
-  }
-  if (desc) return desc;
-  if (params.get("error")) return "Authentication link failed. Please try again.";
-  return null;
-}
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState("signin"); // signin | signup
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, setSession, passwordRecovery, clearPasswordRecovery } = useAuth();
+  const { runWithLoader } = useLoading();
+  usePageLoading(false);
 
   useEffect(() => {
-    if (session) navigate("/app", { replace: true });
-  }, [session, navigate]);
+    // Recovery email leaves a temporary session — stay on login to set a new password.
+    if (session && !passwordRecovery) navigate("/app", { replace: true });
+  }, [session, passwordRecovery, navigate]);
 
-  // Surface Supabase email-link failures (otp_expired, etc.) from the URL hash.
   useEffect(() => {
-    const raw = window.location.hash?.replace(/^#/, "");
-    if (!raw) return;
-    const params = new URLSearchParams(raw);
-    const message = authHashErrorMessage(params);
+    const message = authErrorFromHash(window.location.hash);
     if (message) {
       setErr(message);
       window.history.replaceState(null, "", "/login");
@@ -132,21 +123,36 @@ export default function Login() {
     setErr("");
     setMsg("");
     setBusy(true);
+    const label = passwordRecovery
+      ? "Updating password…"
+      : mode === "signup"
+        ? "Creating account…"
+        : "Signing in…";
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/login` },
-        });
-        if (error) throw error;
-        setMsg("Check your email to confirm your account, then sign in.");
-        setMode("signin");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate("/app", { replace: true });
-      }
+      await runWithLoader(async () => {
+        if (passwordRecovery) {
+          if (password.length < 6) {
+            throw new Error("Password must be at least 6 characters.");
+          }
+          if (password !== confirmPassword) {
+            throw new Error("Passwords do not match.");
+          }
+          await authApi.updatePassword(password);
+          clearPasswordRecovery();
+          setMsg("Password updated. You're signed in.");
+          navigate("/app", { replace: true });
+          return;
+        }
+        if (mode === "signup") {
+          await authApi.signup(email, password, `${window.location.origin}/login`);
+          setMsg("Check your email to confirm your account, then sign in.");
+          setMode("signin");
+        } else {
+          const data = await authApi.login(email, password);
+          setSession(data);
+          navigate("/app", { replace: true });
+        }
+      }, label);
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -155,10 +161,20 @@ export default function Login() {
   }
 
   async function google() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
-    });
+    setErr("");
+    setBusy(true);
+    try {
+      await runWithLoader(async () => {
+        const verifier = createCodeVerifier();
+        storeCodeVerifier(verifier);
+        const challenge = await createCodeChallenge(verifier);
+        const { url } = await authApi.googleStart(`${window.location.origin}/login`, challenge);
+        window.location.assign(url);
+      }, "Connecting Google…");
+    } catch (e2) {
+      setBusy(false);
+      setErr(e2.message || "Could not start Google sign-in.");
+    }
   }
 
   async function forgotPassword() {
@@ -168,11 +184,15 @@ export default function Login() {
       setErr("Enter your email above first, then click Forgot password.");
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
-    });
-    if (error) setErr(error.message);
-    else setMsg("Password reset link sent — check your email.");
+    try {
+      await runWithLoader(
+        () => authApi.forgotPassword(email, `${window.location.origin}/login`),
+        "Sending reset email…"
+      );
+      setMsg("Password reset link sent — check your email.");
+    } catch (e2) {
+      setErr(e2.message);
+    }
   }
 
   return (
@@ -183,35 +203,48 @@ export default function Login() {
             <Logo size={32} />
           </div>
 
-          <h2>{mode === "signin" ? "Welcome back" : "Create your account"}</h2>
+          <h2>
+            {passwordRecovery
+              ? "Set a new password"
+              : mode === "signin"
+                ? "Welcome back"
+                : "Create your account"}
+          </h2>
           <p className="login-sub">
-            {mode === "signin" ? "Log in to your account" : "Start automating in minutes"}
+            {passwordRecovery
+              ? "Choose a new password for your account"
+              : mode === "signin"
+                ? "Log in to your account"
+                : "Start automating in minutes"}
           </p>
 
-          <button type="button" className="google-btn" onClick={google}>
-            <GoogleIcon />
-            <span>Sign in with Google</span>
-          </button>
+          {!passwordRecovery && (
+            <>
+              <button type="button" className="google-btn" onClick={google} disabled={busy}>
+                <GoogleIcon />
+                <span>Sign in with Google</span>
+              </button>
+              <div className="divider"><span>OR</span></div>
+              <input
+                type="email"
+                className="login-input"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </>
+          )}
 
-          <div className="divider"><span>OR</span></div>
-
-          <input
-            type="email"
-            className="login-input"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
           <div className="password-field">
             <input
               type={showPassword ? "text" : "password"}
               className="login-input"
-              placeholder="Password"
+              placeholder={passwordRecovery ? "New password" : "Password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              autoComplete={passwordRecovery || mode === "signup" ? "new-password" : "current-password"}
               required
             />
             <button
@@ -225,7 +258,21 @@ export default function Login() {
             </button>
           </div>
 
-          {mode === "signin" && (
+          {passwordRecovery && (
+            <div className="password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="login-input"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+          )}
+
+          {!passwordRecovery && mode === "signin" && (
             <div className="forgot">
               <a onClick={forgotPassword}>Forgot password?</a>
             </div>
@@ -235,15 +282,23 @@ export default function Login() {
           {msg && <div className="login-ok">{msg}</div>}
 
           <button className="signin-btn" disabled={busy}>
-            {busy ? "…" : mode === "signin" ? "Sign In" : "Sign Up"}
+            {busy
+              ? "…"
+              : passwordRecovery
+                ? "Update password"
+                : mode === "signin"
+                  ? "Sign In"
+                  : "Sign Up"}
           </button>
 
-          <p className="login-switch">
-            {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
-            <a onClick={() => { setErr(""); setMsg(""); setMode(mode === "signin" ? "signup" : "signin"); }}>
-              {mode === "signin" ? "Sign up for free" : "Sign in"}
-            </a>
-          </p>
+          {!passwordRecovery && (
+            <p className="login-switch">
+              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+              <a onClick={() => { setErr(""); setMsg(""); setMode(mode === "signin" ? "signup" : "signin"); }}>
+                {mode === "signin" ? "Sign up for free" : "Sign in"}
+              </a>
+            </p>
+          )}
         </form>
       </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useActiveAccount } from "../context/ActiveAccountContext";
+import { usePageLoading } from "../context/LoadingContext";
 import PostPicker from "../components/PostPicker";
 
 const emptyStep = () => ({
@@ -90,20 +91,28 @@ export default function AutomationBuilder() {
     steps: [{ ...emptyStep(), body: "Here's the link you asked for!" }],
   });
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(editing);
   const [err, setErr] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null); // { id, thumbnail, caption }
+  usePageLoading(loading, editing ? "Loading automation…" : "Loading…");
 
   useEffect(() => {
-    if (editing) {
-      api.get(`/api/automations/${id}`).then((a) =>
+    if (!editing) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    api.get(`/api/automations/${id}`)
+      .then((a) => {
         setForm({
           ...a,
           keywords: a.keywords?.length ? a.keywords : [{ keyword: "", matchType: "CONTAINS" }],
           steps: a.steps?.length ? a.steps : [emptyStep()],
-        })
-      );
-    }
+        });
+      })
+      .catch((e) => setErr(e.message || "Could not load automation."))
+      .finally(() => setLoading(false));
   }, [id, editing]);
 
   // For a new automation, default the account to the one selected in the sidebar.
@@ -161,6 +170,8 @@ export default function AutomationBuilder() {
 
   const isActive = form.status === "ACTIVE";
   const isComment = form.type === "COMMENT" || form.type === "LIVE";
+
+  if (loading) return null;
 
   return (
     <div className="builder">

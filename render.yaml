@@ -18,10 +18,12 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      # --- Supabase auth ---
+      # --- Supabase auth (keys stay on the server; frontend uses /api/auth/*) ---
       - key: SUPABASE_JWT_SECRET
         sync: false
       - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
         sync: false
       # --- Instagram / Meta ---
       - key: META_APP_ID

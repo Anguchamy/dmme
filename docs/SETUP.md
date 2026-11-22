@@ -111,7 +111,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Alternatively, pass everything as environment variables (see `application.yml` for names):
-`DB_URL, DB_USER, DB_PASSWORD, SUPABASE_JWT_SECRET, SUPABASE_URL, CORS_ORIGINS,
+`DB_URL, DB_USER, DB_PASSWORD, SUPABASE_JWT_SECRET, SUPABASE_URL, SUPABASE_ANON_KEY, CORS_ORIGINS,
 META_APP_ID, META_APP_SECRET, META_WEBHOOK_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN,
 INSTAGRAM_REDIRECT_URI, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET`.
 
@@ -124,18 +124,19 @@ Backend runs on `http://localhost:8080`. Check `GET /api/health`.
 ```bash
 cd frontend
 cp .env.example .env
-# set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_BASE_URL
+# set VITE_API_BASE_URL only (e.g. http://localhost:8080) — no Supabase keys in the UI
 npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`.
+Frontend runs on `http://localhost:5173`. Login/signup call the backend (`/api/auth/*`),
+which talks to Supabase Auth server-side.
 
 ---
 
 ## 7. Try it end-to-end
 
-1. Sign up / sign in on `/login` (Supabase Auth).
+1. Sign up / sign in on `/login` (proxied through the backend to Supabase Auth).
 2. **Settings → Connect Instagram** — complete the Instagram OAuth flow for your Business or
    Creator account.
 3. **Automations → New** — set a keyword (e.g. `link`), write a DM, add a Question step to

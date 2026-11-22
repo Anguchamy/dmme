@@ -23,6 +23,8 @@ public class AppProperties {
     public static class Supabase {
         private String jwtSecret;
         private String projectUrl;
+        /** Public anon key — kept server-side only; never ship to the browser. */
+        private String anonKey;
     }
 
     @Data

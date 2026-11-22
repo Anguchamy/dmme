@@ -38,6 +38,7 @@ public class SecurityConfig {
                         "/error",
                         "/api/health",
                         "/api/plans",
+                        "/api/auth/**",
                         "/api/webhooks/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

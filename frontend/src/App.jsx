@@ -18,9 +18,12 @@ import Settings from "./pages/Settings";
 import InstagramCallback from "./pages/InstagramCallback";
 
 function Protected({ children }) {
-  const { session, loading } = useAuth();
+  const { session, loading, passwordRecovery } = useAuth();
   if (loading) return <FullPageLoader label="Signing you in…" />;
-  return session ? children : <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/login" replace />;
+  // Must finish setting a new password after clicking the reset email link.
+  if (passwordRecovery) return <Navigate to="/login" replace />;
+  return children;
 }
 
 export default function App() {
