@@ -14,7 +14,8 @@
 
   /* NOW-inspired bento palette */
   --ink: #131316;
-  --paper: #fafafa;
+  --canvas: #f4f4f5; /* light app/auth background */
+  --paper: #ffffff;
   --paper-soft: #a0a0ab;
   --surface: #18181b;
   --raised: #26272b;

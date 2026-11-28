@@ -3,16 +3,16 @@
   --accent-2: var(--theme-primary-dark);
   --btn: var(--theme-primary);
   --btn-hover: var(--theme-primary-hover);
-  --bg: var(--ink);
-  --bg-soft: var(--surface);
-  /* Two-layer text: canvas (dark bg) vs paper (light cards) */
-  --text-on-canvas: var(--paper);
-  --muted-on-canvas: var(--paper-soft);
+  --bg: var(--canvas);
+  --bg-soft: var(--canvas);
+  /* Two-layer text: canvas (app bg) vs paper (cards) */
+  --text-on-canvas: #18181b;
+  --muted-on-canvas: #70707b;
   --text-on-paper: #18181b;
   --muted-on-paper: #70707b;
   --text: var(--text-on-canvas);
   --muted: var(--muted-on-canvas);
-  --border: var(--raised);
+  --border: #e4e4e7;
   --radius: 16px;
   --radius-lg: var(--tile-radius);
   /* Flattened depth (bento, not clay) */
@@ -37,7 +37,7 @@ body {
   margin: 0;
   font-family: var(--font);
   color: var(--text);
-  background: var(--ink);
+  background: var(--canvas);
   -webkit-font-smoothing: antialiased;
 }
 

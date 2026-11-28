@@ -120,12 +120,12 @@
 /* ---------- Buttons / cards on dark canvas ---------- */
 .btn-primary { background: var(--theme-primary); color: #fff; border-radius: 999px; }
 .btn-ghost {
-  background: var(--surface);
-  border: 1px solid var(--raised);
-  color: var(--paper);
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  color: var(--text-on-canvas);
   border-radius: 999px;
 }
-.btn-ghost:hover { background: var(--raised); }
+.btn-ghost:hover { background: #f4f4f5; }
 
 /* Paper surfaces: remapped --text/--muted so legacy rules stay readable */
 .card, .plan, .step, .review, .qa-card, .metric, .stat, .getstarted,
@@ -182,29 +182,29 @@
   color: var(--text-on-paper) !important;
 }
 
-/* ---------- Full loaders on ink ---------- */
-.full-loader { background: var(--ink); }
-.full-loader-text { color: var(--paper); }
-.full-loader-sub { color: var(--paper-soft); }
+/* ---------- Full loaders ---------- */
+.full-loader { background: var(--canvas); }
+.full-loader-text { color: var(--text-on-canvas); }
+.full-loader-sub { color: var(--muted-on-canvas); }
 
 /* ---------- Legal shell ---------- */
 .page-shell {
   min-height: 100vh;
-  background: var(--ink);
+  background: var(--canvas);
   padding: var(--gap);
 }
 .page-shell .nav {
   max-width: var(--wall-max);
   margin: 0 auto var(--gap);
   padding: 16px 20px;
-  background: var(--surface);
+  background: #fff;
   border-radius: 999px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.page-shell .brand { color: var(--paper); }
+.page-shell .brand { color: var(--text-on-canvas); }
 .page-shell .legal {
   max-width: var(--wall-max);
   margin: 0 auto;
@@ -228,7 +228,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(320px, 480px) 1fr;
-  background: var(--ink);
+  background: var(--canvas);
   gap: var(--gap);
   padding: var(--gap);
 }
@@ -294,7 +294,7 @@
 
 /* ---------- Dashboard shell ---------- */
 .dash {
-  background: var(--ink);
+  background: var(--canvas);
   gap: var(--gap);
   padding: var(--gap);
   grid-template-columns: 260px 1fr;
@@ -323,11 +323,12 @@
   position: relative;
 }
 .main .bg3d { display: none; }
-.main h1 { color: var(--paper); letter-spacing: -0.03em; }
+.main h1 { color: var(--text-on-canvas); letter-spacing: -0.03em; }
 .mobile-topbar {
-  background: var(--surface);
+  background: #fff;
   border-radius: 18px;
   border: none;
+  color: var(--text-on-canvas);
 }
 .acct-trigger, .side-btn, .btn-upgrade {
   border-radius: 14px !important;
@@ -372,7 +373,7 @@
 .row-menu-pop button.danger { color: #dc2626 !important; }
 .data-tag { background: #eef2ff; color: #3730a3; }
 .pager-btn { background: var(--paper) !important; }
-.ig-result-page { background: var(--ink); }
+.ig-result-page { background: var(--canvas); }
 
 .page-head h1 { color: var(--text-on-canvas); }
 .page-head .page-sub { color: var(--muted-on-canvas); }
@@ -388,14 +389,14 @@
   max-width: var(--wall-max);
   margin: var(--gap) auto 0;
   padding: 24px;
-  background: var(--surface);
+  background: #fff;
   border-radius: var(--tile-radius);
   border: none;
-  color: var(--paper-soft);
+  color: var(--muted-on-canvas);
 }
-.page-shell .footer .brand { color: var(--paper); }
-.page-shell .footer a { color: var(--paper-soft); }
-.page-shell .footer a:hover { color: var(--paper); }
+.page-shell .footer .brand { color: var(--text-on-canvas); }
+.page-shell .footer a { color: var(--muted-on-canvas); }
+.page-shell .footer a:hover { color: var(--text-on-canvas); }
 
 .creator-card {
   box-shadow: none !important;
