@@ -302,19 +302,58 @@
 }
 .sidebar {
   background: var(--surface) !important;
-  color: var(--paper-soft) !important;
+  color: #fff !important;
   border-radius: var(--tile-radius);
   padding: 20px 14px !important;
 }
-.sidebar a {
+.sidebar a,
+.side-nav a {
   border-radius: 14px !important;
-  color: var(--paper-soft) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.sidebar a svg,
+.side-nav a svg {
+  opacity: 1 !important;
+  color: #fff !important;
 }
 .sidebar a.active,
-.sidebar a:hover {
+.sidebar a:hover,
+.side-nav a.active,
+.side-nav a:hover {
   background: var(--raised) !important;
-  color: var(--paper) !important;
+  color: #fff !important;
   box-shadow: none !important;
+}
+.side-nav a.active svg {
+  color: var(--sky) !important;
+}
+.side-handle {
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+.side-email {
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-weight: 600 !important;
+}
+.side-section-label {
+  color: #fff !important;
+  font-weight: 800 !important;
+  opacity: 0.9;
+}
+.usage-top {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.side-btn {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.side-btn:hover {
+  color: #fff !important;
+}
+.acct-caret {
+  color: #fff !important;
 }
 .main {
   background: transparent !important;
