@@ -5,8 +5,13 @@
   --btn-hover: var(--theme-primary-hover);
   --bg: var(--ink);
   --bg-soft: var(--surface);
-  --text: var(--paper);
-  --muted: var(--paper-soft);
+  /* Two-layer text: canvas (dark bg) vs paper (light cards) */
+  --text-on-canvas: var(--paper);
+  --muted-on-canvas: var(--paper-soft);
+  --text-on-paper: #18181b;
+  --muted-on-paper: #70707b;
+  --text: var(--text-on-canvas);
+  --muted: var(--muted-on-canvas);
   --border: var(--raised);
   --radius: 16px;
   --radius-lg: var(--tile-radius);
@@ -696,9 +701,9 @@ th { background: #fafafe; color: var(--muted); font-weight: 600; }
   width: 40px; height: 40px; border-radius: 9px; background: #f3f2f9;
   display: flex; align-items: center; justify-content: center;
 }
-.auto-name { color: var(--text); font-weight: 600; cursor: pointer; }
+.auto-name { color: var(--text-on-paper); font-weight: 600; cursor: pointer; }
 .auto-name:hover { color: var(--accent); }
-.muted-cell { color: var(--muted); }
+.muted-cell { color: var(--muted-on-paper); }
 
 .status-dot { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
 .status-dot i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; box-shadow: var(--clay-shadow-sm); }

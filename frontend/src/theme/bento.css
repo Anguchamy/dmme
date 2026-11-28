@@ -127,15 +127,60 @@
 }
 .btn-ghost:hover { background: var(--raised); }
 
-.card, .plan, .step, .review, .qa-card, .metric, .stat, .getstarted, .table-card, .empty-card, .flow-card {
+/* Paper surfaces: remapped --text/--muted so legacy rules stay readable */
+.card, .plan, .step, .review, .qa-card, .metric, .stat, .getstarted,
+.table-card, .empty-card, .flow-card, .modal-card, .ig-gate-card, .ig-result-card,
+.login-form, .response-card, .locked-card, .settings-card, .billing-card,
+.billing-panel, .settings-panel, .settings-section, .plan-card {
+  --text: var(--text-on-paper);
+  --muted: var(--muted-on-paper);
+  --border: #e4e4e7;
   background: var(--paper) !important;
-  color: var(--ink);
+  color: var(--text-on-paper) !important;
   border: none !important;
   border-radius: var(--tile-radius) !important;
   box-shadow: none !important;
 }
-.card p, .plan li, .step p, .empty-card p, .flow-head-sub { color: #51525c !important; }
+.card p, .plan li, .step p, .empty-card p, .flow-head-sub,
+.qa-desc, .locked-desc, .muted-cell, .page-shell .legal p {
+  color: var(--muted-on-paper) !important;
+}
 .card:hover, .step:hover, .review:hover, .stat:hover, .metric:hover { transform: none; box-shadow: none; }
+
+/* Links / names inside paper cards */
+.table-card a,
+.empty-card a,
+.flow-card a,
+.auto-name {
+  color: var(--text-on-paper) !important;
+}
+.table-card a:hover,
+.empty-card a:hover,
+.flow-card a:hover,
+.auto-name:hover {
+  color: var(--accent) !important;
+}
+
+.table-card th,
+.auto-table th {
+  color: var(--muted-on-paper) !important;
+  background: #f4f4f5 !important;
+}
+.table-card td,
+.auto-table td {
+  color: var(--text-on-paper) !important;
+  border-color: #ececf0 !important;
+}
+.qa-title, .gs-label, .metric .v, .metric .val,
+.empty-card h3, .flow-head-title, .locked-name, .config-label {
+  color: var(--text-on-paper) !important;
+}
+.rows-per, .table-foot {
+  color: var(--muted-on-paper) !important;
+}
+.pager-btn {
+  color: var(--text-on-paper) !important;
+}
 
 /* ---------- Full loaders on ink ---------- */
 .full-loader { background: var(--ink); }
@@ -295,99 +340,48 @@
 }
 .usage-bar { background: var(--raised); }
 .usage-fill { background: var(--sky); }
-.modal-card {
-  background: var(--paper) !important;
-  color: var(--ink);
-  border-radius: var(--tile-radius) !important;
-  border: none !important;
-}
-.modal-card p { color: #51525c; }
-
-/* App content surfaces */
-.overview .metric,
-.overview .qa-card,
-.overview .getstarted,
-.table-card,
-.empty-card,
-.builder .flow-card,
-.settings-card,
-.billing-card {
-  background: var(--paper) !important;
-  color: var(--ink);
-}
 .builder-bar { background: transparent !important; }
 .builder-title {
+  --text: var(--text-on-paper);
+  --muted: var(--muted-on-paper);
   background: var(--paper) !important;
-  color: var(--ink) !important;
+  color: var(--text-on-paper) !important;
   border-radius: 14px !important;
 }
-.back-link { color: var(--paper-soft) !important; }
-.back-link:hover { color: var(--paper) !important; }
+.back-link { color: var(--muted-on-canvas) !important; }
+.back-link:hover { color: var(--text-on-canvas) !important; }
 
 .icon-btn {
   background: var(--paper) !important;
   border-color: transparent !important;
-  color: #51525c !important;
+  color: var(--muted-on-paper) !important;
 }
 .icon-btn:hover {
   background: #f4f4f5 !important;
   color: var(--theme-primary) !important;
 }
 .row-menu-pop {
+  --text: var(--text-on-paper);
+  --muted: var(--muted-on-paper);
   background: var(--paper) !important;
   border: none !important;
   border-radius: 16px !important;
+  color: var(--text-on-paper) !important;
 }
+.row-menu-pop button { color: var(--text-on-paper) !important; }
+.row-menu-pop button.danger { color: #dc2626 !important; }
 .data-tag { background: #eef2ff; color: #3730a3; }
 .pager-btn { background: var(--paper) !important; }
 .ig-result-page { background: var(--ink); }
-.ig-result-card {
-  background: var(--paper) !important;
-  border-radius: var(--tile-radius) !important;
-  box-shadow: none !important;
-  color: var(--ink);
-}
 
-.ig-gate-card {
-  background: var(--paper) !important;
-  border: none !important;
-  border-radius: var(--tile-radius) !important;
-  box-shadow: none !important;
-  color: var(--ink);
-}
-.ig-gate-card p { color: #51525c; }
-
-.page-head h1 { color: var(--paper); }
-.page-head .page-sub { color: var(--paper-soft); }
-
-.table-card,
-.data-table,
-.leads-table-wrap {
-  color: var(--ink);
-}
-.data-table th { color: #70707b !important; background: transparent !important; }
-.data-table td { color: var(--ink) !important; border-color: #e4e4e7 !important; }
-
-.qa-card h3, .metric .lbl, .metric .val, .getstarted h3 {
-  color: var(--ink);
-}
-.qa-card p, .getstarted p { color: #51525c; }
+.page-head h1 { color: var(--text-on-canvas); }
+.page-head .page-sub { color: var(--muted-on-canvas); }
+.page-head .page-sub strong { color: var(--text-on-canvas); }
 
 .upgrade-banner,
 .banner-upgrade {
   border-radius: 20px !important;
   border: none !important;
-}
-
-.settings-section,
-.settings-panel,
-.billing-panel,
-.plan-card {
-  background: var(--paper) !important;
-  color: var(--ink) !important;
-  border-radius: var(--tile-radius) !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 .page-shell .footer {
@@ -438,20 +432,22 @@
   font-weight: 800 !important;
 }
 
-.flow-section-title,
+.flow-section-title {
+  color: var(--text-on-canvas) !important;
+}
 .locked-name,
 .flow-head-title,
 .config-label,
 .field label,
 .response-head {
-  color: var(--ink) !important;
+  color: var(--text-on-paper) !important;
 }
 .locked-desc,
 .field .hint,
 .pick-post-hint {
-  color: #70707b !important;
+  color: var(--muted-on-paper) !important;
 }
-.status-toggle-label { color: var(--paper-soft) !important; }
+.status-toggle-label { color: var(--muted-on-canvas) !important; }
 .add-response-btn,
 .pick-post-card {
   border-radius: 18px !important;
