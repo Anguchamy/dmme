@@ -4,7 +4,6 @@ import { authApi } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useLoading, usePageLoading } from "../context/LoadingContext";
 import { Logo } from "../components/Logo";
-import Backdrop3D from "../components/Backdrop3D";
 import { authErrorFromHash } from "../lib/session";
 import { createCodeChallenge, createCodeVerifier, storeCodeVerifier } from "../lib/pkce";
 
@@ -200,7 +199,7 @@ export default function Login() {
       <div className="login-form-col">
         <form className="login-form" onSubmit={submit}>
           <div className="brand-row">
-            <Logo size={32} />
+            <Logo size={32} color="var(--ink)" />
           </div>
 
           <h2>
@@ -214,8 +213,8 @@ export default function Login() {
             {passwordRecovery
               ? "Choose a new password for your account"
               : mode === "signin"
-                ? "Log in to your account"
-                : "Start automating in minutes"}
+                ? "Log in to continue automating"
+                : "Start automating Instagram DMs in minutes"}
           </p>
 
           {!passwordRecovery && (
@@ -303,10 +302,12 @@ export default function Login() {
       </div>
 
       <div className="login-showcase">
-        <Backdrop3D />
         <h2 className="showcase-head">
-          Join <span>25k+</span> Creators
+          Join <span>25k+</span> creators on the grid
         </h2>
+        <p style={{ color: "var(--paper-soft)", margin: "-20px 0 28px", fontWeight: 500, textAlign: "center" }}>
+          Comment → DM automation that feels native.
+        </p>
         <div className="marquee-stack">
           <MarqueeRow items={CREATORS.slice(0, 6)} />
           <MarqueeRow items={CREATORS.slice(6, 12)} reverse />

@@ -6,6 +6,7 @@ import { LoadingProvider } from "./context/LoadingContext";
 import App from "./App";
 import "./theme/tokens.css";
 import "./styles.css";
+import "./theme/bento.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

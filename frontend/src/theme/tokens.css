@@ -1,15 +1,31 @@
 :root {
-  /* Central brand color tokens (edit these in one place). */
+  /* Brand (keep dmme blue as primary CTA) */
   --theme-primary: #2b2bff;
-  --theme-primary-dark: #4f46e5;
-  --theme-primary-hover: #1f1fe0;
-  --theme-primary-indigo: #6366f1;
-  --theme-primary-sky: #93c5fd;
-  --theme-primary-light: #e0e7ff;
-  --theme-primary-soft: #eef0ff;
-  --theme-surface-soft: #f7f8ff;
+  --theme-primary-dark: #1f1fe0;
+  --theme-primary-hover: #3d3dff;
+  --theme-primary-indigo: #8098f9;
+  --theme-primary-sky: #36bffa;
+  --theme-primary-light: #a4bcfd;
+  --theme-primary-soft: #26272b;
+  --theme-surface-soft: #18181b;
 
-  /* RGB triplets for rgba(...) usage */
   --theme-primary-rgb: 43, 43, 255;
-  --theme-primary-dark-rgb: 79, 70, 229;
+  --theme-primary-dark-rgb: 31, 31, 224;
+
+  /* NOW-inspired bento palette */
+  --ink: #131316;
+  --paper: #fafafa;
+  --paper-soft: #a0a0ab;
+  --surface: #18181b;
+  --raised: #26272b;
+  --orange: #fd853a;
+  --purple: #9b8afb;
+  --green: #47cd89;
+  --sky: #36bffa;
+  --gap: 16px;
+  --tile-radius: 32px;
+  --tile-radius-lg: 40px;
+  --tile-padding: clamp(24px, 4vw, 48px);
+  --wall-max: 1248px;
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 }

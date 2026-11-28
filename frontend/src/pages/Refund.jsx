@@ -5,7 +5,7 @@ const UPDATED = "July 8, 2026";
 
 export default function Refund() {
   return (
-    <div>
+    <div className="page-shell">
       <nav className="nav">
         <Link to="/" className="brand">{brand.name}</Link>
         <div className="row-flex">

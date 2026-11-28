@@ -5,6 +5,7 @@ import com.dmme.repository.AppUserRepository;
 import com.dmme.security.AuthUser;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -33,14 +34,19 @@ public class CurrentUserService {
         return UUID.fromString(principal().userId());
     }
 
+    @Transactional
     public AppUser require() {
         AuthUser au = principal();
         UUID id = UUID.fromString(au.userId());
-        return users.findById(id).orElseGet(() -> {
-            AppUser u = new AppUser();
-            u.setId(id);
-            u.setEmail(au.email() != null ? au.email() : id + "@placeholder.local");
-            return users.save(u);
-        });
+        return users.findById(id).orElseGet(() -> provision(au, id));
+    }
+
+    private AppUser provision(AuthUser au, UUID id) {
+        String email = au.email() != null ? au.email() : id + "@placeholder.local";
+        // Concurrent /api/me (and other) calls on first login used to both INSERT and
+        // blow up on app_user_pkey. Insert-ignore + refetch is safe under that race.
+        users.insertIgnoreConflict(id, email);
+        return users.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Failed to provision app_user " + id));
     }
 }
